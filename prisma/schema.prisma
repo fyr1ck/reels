@@ -1,0 +1,162 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Configurações globais do usuário (linha única, id fixo = 1)
+model UserSettings {
+  id                Int      @id @default(1)
+  defaultCaption    String   @default("🚀 Transforme sua presença digital. Confira o link da bio!")
+  useDefaultCaption Boolean  @default(true)
+  postsPerDay       Int      @default(5)
+  automationEnabled Boolean  @default(false)
+  // ACTIVE | PAUSED | INTERVENTION_REQUIRED
+  automationStatus  String   @default("PAUSED")
+  keepBrowserOpen   Boolean  @default(false)
+  // Capa padrão aplicada a novos vídeos da fila (sistema de capa personalizada)
+  defaultCoverPath  String?
+  useDefaultCover   Boolean  @default(false)
+  // Limpeza automática de cache (arquivos temporários do app — ver server/services/cacheManager.js)
+  cacheAutoCleanEnabled       Boolean   @default(false)
+  cacheAutoCleanIntervalHours Int       @default(24)
+  lastCacheCleanAt            DateTime?
+  // Modo de agendamento: TIMES (horários específicos) | INTERVAL (a cada X minutos)
+  scheduleMode        String   @default("TIMES")
+  intervalMinutes     Int      @default(5)
+  // Início do modo intervalo: NOW (a partir de agora) | AT (horário específico em intervalStartAt, "HH:mm")
+  intervalStartMode   String   @default("NOW")
+  intervalStartAt     String?
+  updatedAt         DateTime @updatedAt
+}
+
+// Um vídeo na fila (pendente, agendado, publicando, publicado ou com falha)
+model Video {
+  id           String        @id @default(uuid())
+  filename     String
+  filepath     String
+  thumbnail    String?
+  duration     Float?
+  size         Int?
+  caption      String?
+  // Capa personalizada deste vídeo (sistema de capa — ver server/services/coverManager.js)
+  coverPath    String?
+  coverEnabled Boolean       @default(true)
+  // PENDING | SCHEDULED | PUBLISHING | PUBLISHED | FAILED
+  status       String        @default("PENDING")
+  position     Int           @default(0)
+  createdAt    DateTime      @default(now())
+  publishedAt  DateTime?
+  failedAt     DateTime?
+  publications Publication[]
+}
+
+// Um agendamento concreto: vídeo X vinculado a um horário Y
+model Publication {
+  id           String    @id @default(uuid())
+  videoId      String
+  video        Video     @relation(fields: [videoId], references: [id])
+  scheduledAt  DateTime
+  publishedAt  DateTime?
+  // SCHEDULED | PUBLISHING | PUBLISHED | FAILED
+  status       String    @default("SCHEDULED")
+  attempts     Int       @default(0)
+  errorMessage String?
+  createdAt    DateTime  @default(now())
+}
+
+// Horário recorrente de publicação diária (ex: 12:00, 14:00...)
+model Schedule {
+  id      Int     @id @default(autoincrement())
+  time    String
+  enabled Boolean @default(true)
+}
+
+// Log de eventos do sistema (auditoria e depuração)
+model Log {
+  id         Int      @id @default(autoincrement())
+  timestamp  DateTime @default(now())
+  video      String?
+  action     String
+  // INFO | SUCCESS | ERROR | WARNING
+  status     String   @default("INFO")
+  message    String?
+  attempt    Int?
+  durationMs Int?
+}
+
+// ============================================================
+// EDITOR DE REELS EM MASSA
+// ============================================================
+
+// Um template visual reutilizável (header, título, container de vídeo,
+// background, marca d'água, bordas, áudio, exportação). O campo `config`
+// guarda um JSON com toda a estrutura — ver server/services/reelTemplate.js
+// para o schema completo em runtime.
+model VideoTemplate {
+  id              String           @id @default(uuid())
+  name            String
+  config          String // JSON serializado
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  processingJobs  ProcessingJob[]
+  processedVideos ProcessedVideo[]
+}
+
+// Um lote de processamento em massa: N vídeos + 1 template.
+model ProcessingJob {
+  id             String           @id @default(uuid())
+  templateId     String
+  template       VideoTemplate    @relation(fields: [templateId], references: [id])
+  // PENDING | PROCESSING | COMPLETED | CANCELLED | FAILED
+  status         String           @default("PENDING")
+  totalVideos    Int              @default(0)
+  completedCount Int              @default(0)
+  failedCount    Int              @default(0)
+  cancelledCount Int              @default(0)
+  concurrency    Int              @default(2)
+  autoQueue      Boolean          @default(false)
+  autoSchedule   Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  finishedAt     DateTime?
+  items          ProcessedVideo[]
+}
+
+// Um vídeo individual dentro de um ProcessingJob (origem -> resultado).
+model ProcessedVideo {
+  id             String        @id @default(uuid())
+  jobId          String
+  job            ProcessingJob @relation(fields: [jobId], references: [id])
+  templateId     String
+  template       VideoTemplate @relation(fields: [templateId], references: [id])
+  sourceFilename String
+  sourcePath     String
+  outputFilename String?
+  outputPath     String?
+  // PENDING | PROCESSING | COMPLETED | FAILED | CANCELLED
+  status         String        @default("PENDING")
+  progress       Int           @default(0)
+  errorMessage   String?
+  addedToQueue   Boolean       @default(false)
+  queuedVideoId  String?
+  createdAt      DateTime      @default(now())
+  finishedAt     DateTime?
+}
+
+// Vídeo de origem enviado para o Editor em Massa (antes de ser processado).
+// Independente da fila de publicação (`Video`) — só entra lá depois de
+// processado, se o usuário mandar para a fila.
+model EditorSourceVideo {
+  id         String   @id @default(uuid())
+  filename   String
+  filepath   String
+  thumbnail  String?
+  duration   Float?
+  size       Int?
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+}
