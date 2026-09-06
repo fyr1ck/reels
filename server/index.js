@@ -18,6 +18,8 @@ import logsRouter from './routes/logs.js';
 import dashboardRouter from './routes/dashboard.js';
 import reelEditorRouter from './routes/reelEditor.js';
 import storageRouter from './routes/storage.js';
+import libraryRouter from './routes/library.js';
+import operationRouter from './routes/operation.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -37,6 +39,8 @@ app.use('/api/logs', logsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reel-editor', reelEditorRouter);
 app.use('/api/storage', storageRouter);
+app.use('/api/library', libraryRouter);
+app.use('/api/operation', operationRouter);
 
 // Serve as imagens de capa (individuais e padrão) diretamente do disco.
 // Sistema de capa personalizada — ver server/services/coverManager.js.

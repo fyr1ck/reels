@@ -12,16 +12,20 @@ import Analytics from './pages/Analytics.jsx';
 import History from './pages/History.jsx';
 import Logs from './pages/Logs.jsx';
 import Settings from './pages/Settings.jsx';
+import Operacao from './pages/Operacao.jsx';
+import Biblioteca from './pages/Biblioteca.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { ConfirmProvider } from './context/ConfirmContext.jsx';
 import { api } from './api/client.js';
 
 const PAGE_META = {
   '/': { title: 'Dashboard', breadcrumb: 'Visão geral' },
+  '/operacao': { title: 'Operação', breadcrumb: 'Visão geral' },
   '/fila': { title: 'Fila de vídeos', breadcrumb: 'Conteúdo' },
   '/editor-em-massa': { title: 'Editor em Massa', breadcrumb: 'Conteúdo' },
   '/calendario': { title: 'Calendário', breadcrumb: 'Conteúdo' },
   '/horarios': { title: 'Horários', breadcrumb: 'Conteúdo' },
+  '/biblioteca': { title: 'Legendas & Hashtags', breadcrumb: 'Conteúdo' },
   '/instagram': { title: 'Instagram', breadcrumb: 'Conta / Conexão' },
   '/analytics': { title: 'Analytics', breadcrumb: 'Instagram' },
   '/historico': { title: 'Histórico', breadcrumb: 'Atividade' },
@@ -70,10 +74,12 @@ function Shell() {
         <main className="main">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/operacao" element={<Operacao />} />
             <Route path="/fila" element={<Queue />} />
             <Route path="/editor-em-massa" element={<ReelEditor />} />
             <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/horarios" element={<SchedulePage />} />
+            <Route path="/biblioteca" element={<Biblioteca />} />
             <Route path="/instagram" element={<InstagramPage />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/historico" element={<History />} />

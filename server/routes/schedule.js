@@ -28,8 +28,21 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { enabled } = req.body;
-    const schedule = await prisma.schedule.update({ where: { id: Number(req.params.id) }, data: { enabled } });
+    const { enabled, jitterMinutes } = req.body;
+
+    // Monta o patch só com o que veio no corpo: chamadas antigas que enviam
+    // apenas { enabled } continuam funcionando sem zerar o jitter.
+    const data = {};
+    if (enabled !== undefined) data.enabled = !!enabled;
+    if (jitterMinutes !== undefined) {
+      const n = Number(jitterMinutes);
+      if (!Number.isFinite(n) || n < 0 || n > 120) {
+        return res.status(400).json({ error: 'Variação deve ficar entre 0 e 120 minutos.' });
+      }
+      data.jitterMinutes = Math.round(n);
+    }
+
+    const schedule = await prisma.schedule.update({ where: { id: Number(req.params.id) }, data });
     await generateUpcomingSchedule();
     res.json(schedule);
   } catch (err) {

@@ -573,3 +573,164 @@ tbody tr:last-child td { border-bottom: none; }
 
 .spin { animation: re-spin 1s linear infinite; }
 @keyframes re-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ============================================================
+   OPERACAO  (pagina /operacao)
+   ============================================================ */
+
+.op-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.op-hero-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  opacity: .6;
+}
+.op-hero-value {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 4px 0 6px;
+}
+.op-hero-badge { flex-shrink: 0; }
+
+.op-bar-wrap { margin-top: 12px; padding: 14px 16px; }
+.op-bar-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+.op-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .07);
+  overflow: hidden;
+}
+.op-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .4s ease;
+}
+.op-bar-fill.success { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.op-bar-fill.warning { background: linear-gradient(90deg, #b45309, #f59e0b); }
+.op-bar-fill.danger  { background: linear-gradient(90deg, #b91c1c, #ef4444); }
+
+/* ============================================================
+   BIBLIOTECA  (pagina /biblioteca)
+   ============================================================ */
+
+.lib-form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.lib-form-row > input { flex: 1; min-width: 160px; }
+.lib-form-row > .text-faint { flex: 1; min-width: 200px; }
+
+.lib-weight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: .75;
+  white-space: nowrap;
+}
+.lib-weight input { width: 62px; }
+
+.lib-list { display: flex; flex-direction: column; gap: 10px; }
+
+.lib-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .02);
+}
+.lib-item.disabled { opacity: .45; }
+.lib-item-main { min-width: 0; flex: 1; }
+.lib-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.lib-item-text {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.lib-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.lib-tag {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, .16);
+  color: #a5b4fc;
+}
+/* Hashtags além do limite do Instagram: cortadas na publicação */
+.lib-tag.over {
+  background: rgba(239, 68, 68, .16);
+  color: #fca5a5;
+  text-decoration: line-through;
+}
+
+.lib-preview { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.lib-preview-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  background: rgba(0, 0, 0, .18);
+}
+.lib-preview-item pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   VARIACAO ALEATORIA DE HORARIO  (coluna nova em /horarios)
+   ============================================================ */
+
+.jitter-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.jitter-cell input { width: 66px; }
+.jitter-hint {
+  font-size: 11px;
+  opacity: .5;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+
+/* `.tab` foi escrito para <div> (ver History.jsx) e por isso não zera o
+   chrome padrao do navegador. Na Biblioteca os tabs sao <button> — focaveis
+   e acionaveis pelo teclado — entao o reset vem aqui, sem alterar a regra
+   original nem as telas que ja usam <div className="tab">. */
+button.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+button.tab.active { border-bottom-color: var(--accent); }

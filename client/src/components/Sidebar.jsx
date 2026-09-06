@@ -3,13 +3,17 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, ListVideo, CalendarDays, Clock, BarChart3,
   History, ScrollText, Settings, ChevronsLeft, ChevronsRight, Film, Camera, Wand2,
+  Activity, Hash,
 } from 'lucide-react';
 import AutomationBadge from './AutomationBadge.jsx';
 
 const NAV_GROUPS = [
   {
     label: null, // grupo sem título (Dashboard sozinho no topo)
-    items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true }],
+    items: [
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/operacao', label: 'Operação', icon: Activity },
+    ],
   },
   {
     label: 'Conteúdo',
@@ -18,6 +22,7 @@ const NAV_GROUPS = [
       { to: '/editor-em-massa', label: 'Editor em Massa', icon: Wand2 },
       { to: '/calendario', label: 'Calendário', icon: CalendarDays },
       { to: '/horarios', label: 'Horários', icon: Clock },
+      { to: '/biblioteca', label: 'Legendas & Hashtags', icon: Hash },
     ],
   },
   {

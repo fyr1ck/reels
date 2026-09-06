@@ -4,6 +4,24 @@ import { useToast } from '../context/ToastContext.jsx';
 
 const INTERVAL_PRESETS = [1, 2, 5, 10, 15, 30, 60];
 
+/**
+ * Descreve a janela de publicação de um slot para o usuário conferir de
+ * relance: "14:00 exato" ou "entre 13:50 e 14:10".
+ */
+function describeJitter(time, jitterMinutes) {
+  const minutes = Number(jitterMinutes) || 0;
+  if (minutes <= 0) return `${time} exato`;
+
+  const [h, m] = time.split(':').map(Number);
+  const base = h * 60 + m;
+  const fmt = (total) => {
+    const norm = ((total % 1440) + 1440) % 1440;
+    return `${String(Math.floor(norm / 60)).padStart(2, '0')}:${String(norm % 60).padStart(2, '0')}`;
+  };
+  return `entre ${fmt(base - minutes)} e ${fmt(base + minutes)}`;
+}
+
+
 export default function SchedulePage() {
   const toast = useToast();
   const [schedules, setSchedules] = useState([]);
@@ -39,6 +57,17 @@ export default function SchedulePage() {
   async function toggleTime(id, enabled) {
     await api.put(`/schedule/${id}`, { enabled });
     await load();
+  }
+
+  // Variação aleatória do horário. 0 = publica cravado no minuto (padrão).
+  async function saveJitter(id, jitterMinutes) {
+    setError('');
+    try {
+      await api.put(`/schedule/${id}`, { jitterMinutes });
+      await load();
+    } catch (e) {
+      setError(e.response?.data?.error || 'Erro ao salvar a variação.');
+    }
   }
 
   async function savePostsPerDay(value) {
@@ -233,12 +262,26 @@ export default function SchedulePage() {
           ) : (
             <table>
               <thead>
-                <tr><th>Horário</th><th>Status</th><th></th></tr>
+                <tr><th>Horário</th><th>Variação</th><th>Status</th><th></th></tr>
               </thead>
               <tbody>
                 {schedules.map((s) => (
                   <tr key={s.id}>
                     <td style={{ fontWeight: 700 }}>{s.time}</td>
+                    <td>
+                      <div className="jitter-cell">
+                        <input
+                          type="number"
+                          min="0"
+                          max="120"
+                          value={s.jitterMinutes ?? 0}
+                          onChange={(e) => saveJitter(s.id, Number(e.target.value))}
+                          title="Variação aleatória em minutos (0 = horário exato)"
+                        />
+                        <span className="text-faint">min</span>
+                      </div>
+                      <div className="jitter-hint">{describeJitter(s.time, s.jitterMinutes)}</div>
+                    </td>
                     <td>
                       <span className={`badge ${s.enabled ? 'badge-success' : 'badge-neutral'}`}>
                         {s.enabled ? 'Ativo' : 'Desativado'}

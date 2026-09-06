@@ -73,6 +73,10 @@ model Schedule {
   id      Int     @id @default(autoincrement())
   time    String
   enabled Boolean @default(true)
+  // Variacao aleatoria em minutos aplicada ao redor de `time` (0 = desligado,
+  // comportamento identico ao original). Ex: 14:00 com jitter 10 => publica
+  // em algum instante entre 13:50 e 14:10. Ver schedulerService.applyJitter.
+  jitterMinutes Int @default(0)
 }
 
 // Log de eventos do sistema (auditoria e depuração)
@@ -159,4 +163,38 @@ model EditorSourceVideo {
   width      Int?
   height     Int?
   createdAt  DateTime @default(now())
+}
+
+// ============================================================
+// BIBLIOTECA DE CONTEUDO (legendas e hashtags)
+// ============================================================
+// Modelos aditivos: nada aqui altera o fluxo de publicacao existente.
+// Sao usados sob demanda pela pagina "Legendas & Hashtags", que aplica
+// os textos em lote aos videos PENDING da fila (gravando em Video.caption).
+
+// Uma legenda reutilizavel. `weight` permite que legendas melhores
+// aparecam mais vezes no sorteio; `usedCount` registra quantas vezes ja
+// foi aplicada, para o rodizio distribuir de forma equilibrada.
+model CaptionTemplate {
+  id        String   @id @default(uuid())
+  text      String
+  label     String?
+  enabled   Boolean  @default(true)
+  weight    Int      @default(1)
+  usedCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Um grupo de hashtags (ex: "futebol", "promo"). `hashtags` guarda o
+// texto cru como o usuario digitou — a normalizacao (# e deduplicacao)
+// acontece em server/services/contentLibrary.js.
+model HashtagGroup {
+  id        String   @id @default(uuid())
+  name      String
+  hashtags  String
+  enabled   Boolean  @default(true)
+  usedCount Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -82,6 +82,29 @@ async function generateIntervalSchedule(settings) {
 }
 
 /**
+ * Aplica variação aleatória em torno de um horário fixo.
+ *
+ * Publicar sempre às 14:00:00 cravadas é um padrão obviamente robótico; com
+ * jitter de 10min o post sai em algum ponto entre 13:50 e 14:10. Com
+ * `jitterMinutes = 0` a função devolve o horário original intacto — o
+ * comportamento padrão continua exatamente o de antes.
+ */
+export function applyJitter(baseDate, jitterMinutes) {
+  const minutes = Math.max(0, jitterMinutes || 0);
+  if (minutes === 0) return baseDate;
+
+  const spanMs = minutes * 60 * 1000;
+  const offset = Math.round((Math.random() * 2 - 1) * spanMs);
+  const jittered = new Date(baseDate.getTime() + offset);
+
+  // O sorteio pode jogar o horário para trás do agora (ex: slot daqui a 3min
+  // com jitter de 10min). Nesse caso adia um minuto em vez de agendar no
+  // passado, que o tick publicaria imediatamente.
+  const floor = Date.now() + 60 * 1000;
+  return jittered.getTime() < floor ? new Date(floor) : jittered;
+}
+
+/**
  * Modo "Horários específicos" (comportamento original): percorre os
  * próximos `daysAhead` dias e, para cada horário habilitado em Schedule,
  * garante que exista uma Publication agendada — atribuindo o próximo vídeo
@@ -98,14 +121,29 @@ async function generateTimesSchedule(daysAhead) {
 
     for (const sch of schedules) {
       const [h, m] = sch.time.split(':').map(Number);
-      const scheduledAt = new Date(day);
-      scheduledAt.setHours(h, m, 0, 0);
+      const slotAt = new Date(day);
+      slotAt.setHours(h, m, 0, 0);
 
       // não cria agendamento para um horário de hoje que já passou
-      if (d === 0 && scheduledAt.getTime() < Date.now()) continue;
+      if (d === 0 && slotAt.getTime() < Date.now()) continue;
 
-      const exists = await prisma.publication.findFirst({ where: { scheduledAt } });
+      // A dedupção precisa olhar para a JANELA do slot, não para o instante
+      // exato: com jitter ligado o horário sorteado muda a cada regeração, e
+      // um findFirst por igualdade criaria publicações duplicadas no mesmo slot.
+      const jitterMs = Math.max(0, sch.jitterMinutes || 0) * 60 * 1000;
+      const exists = await prisma.publication.findFirst({
+        where: jitterMs > 0
+          ? {
+              scheduledAt: {
+                gte: new Date(slotAt.getTime() - jitterMs),
+                lte: new Date(slotAt.getTime() + jitterMs),
+              },
+            }
+          : { scheduledAt: slotAt },
+      });
       if (exists) continue;
+
+      const scheduledAt = applyJitter(slotAt, sch.jitterMinutes);
 
       const nextVideo = await prisma.video.findFirst({
         where: { status: 'PENDING' },
