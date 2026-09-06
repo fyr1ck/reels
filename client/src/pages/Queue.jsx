@@ -443,6 +443,12 @@ export default function Queue() {
                   <div className="meta">
                     <span>⏱ {formatDuration(v.duration)}</span>
                     <span>💾 {formatSize(v.size)}</span>
+                    {/* Reel e story seguem grades e fluxos de publicação
+                        diferentes; sem esse selo os dois ficam indistinguíveis
+                        na fila. */}
+                    <span className={`badge ${v.mediaType === 'STORY' ? 'badge-warning' : 'badge-neutral'}`} style={{ padding: '2px 8px' }}>
+                      {v.mediaType === 'STORY' ? 'story' : 'reel'}
+                    </span>
                     <span className={`badge badge-${v.status === 'PUBLISHED' ? 'success' : v.status === 'FAILED' ? 'danger' : 'accent'}`} style={{ padding: '2px 8px' }}>
                       {v.status}
                     </span>

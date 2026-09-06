@@ -83,6 +83,22 @@ async function bootstrap() {
   if (adopted) console.log(`↪ Sessão anterior adotada por @${adopted.username}.`);
   await refreshConnectionFlags();
 
+  // Um vídeo fica PUBLISHING enquanto o navegador trabalha. Se o processo cair
+  // (ou for reiniciado) no meio, o registro nunca sai desse estado: some da
+  // fila de pendentes, nunca é publicado e ainda desencontra os números do
+  // dashboard. Na subida, o que estava em voo volta para a fila.
+  const presos = await prisma.video.updateMany({
+    where: { status: 'PUBLISHING' },
+    data: { status: 'PENDING' },
+  });
+  await prisma.publication.updateMany({
+    where: { status: 'PUBLISHING' },
+    data: { status: 'SCHEDULED' },
+  });
+  if (presos.count > 0) {
+    console.log(`↻ ${presos.count} vídeo(s) interrompidos em publicação voltaram para a fila.`);
+  }
+
   startCacheAutoCleanLoop(prisma);
 
   // Importação de pastas monitoradas roda independente da automação: mesmo

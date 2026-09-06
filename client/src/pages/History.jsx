@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAccounts } from '../context/AccountContext.jsx';
 import { api, formatDateTime } from '../api/client.js';
 
 const STATUS_LABEL = {
@@ -9,16 +10,17 @@ const STATUS_LABEL = {
 };
 
 export default function History() {
+  const { selectedId } = useAccounts();
   const [publications, setPublications] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/publications').then((res) => {
+    api.get('/publications', { params: { accountId: selectedId || undefined } }).then((res) => {
       setPublications(res.data);
       setLoading(false);
     });
-  }, []);
+  }, [selectedId]);
 
   const filtered = filter === 'ALL' ? publications : publications.filter((p) => p.status === filter);
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAccounts } from '../context/AccountContext.jsx';
 import { api, formatDate, formatTime } from '../api/client.js';
 
 const STATUS_LABEL = {
@@ -11,13 +12,17 @@ const STATUS_LABEL = {
 export default function CalendarPage() {
   const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { selectedId, selected } = useAccounts();
 
   useEffect(() => {
-    api.get('/publications/calendar').then((res) => {
+    setLoading(true);
+    api.get('/publications/calendar', { params: { accountId: selectedId || undefined } }).then((res) => {
       setPublications(res.data);
       setLoading(false);
     });
-  }, []);
+    // Recarrega ao trocar de conta — senão o calendário continuaria mostrando
+    // a agenda do perfil anterior.
+  }, [selectedId]);
 
   if (loading) return <div className="text-dim">Carregando...</div>;
 
@@ -38,7 +43,7 @@ export default function CalendarPage() {
     <div>
       <div className="page-header">
         <h1>Calendário</h1>
-        <p>Todos os horários agendados, publicações concluídas e falhas, organizados por dia.</p>
+        <p>Agenda de <b>@{selected?.username || '—'}</b>: horários agendados, publicações concluídas e falhas, por dia.</p>
       </div>
 
       {orderedDays.length === 0 ? (

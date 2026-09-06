@@ -212,12 +212,28 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
             <AutomationBadge status={status.automationStatus} />
             <span className="text-faint" style={{ fontSize: 12 }}>
-              {status.automationEnabled ? 'Automação habilitada' : 'Automação desligada'}
+              {status.activeAccounts ?? 0} de {status.totalAccounts ?? 0} conta(s) ativa(s)
             </span>
           </div>
+
+          {/* Os botões abaixo são chave-mestra: ligam/pausam TODAS as contas
+              conectadas de uma vez. O controle conta a conta fica em /contas. */}
+          {status.connectedAccounts === 0 && (
+            <p className="text-faint" style={{ fontSize: 12, marginBottom: 12 }}>
+              Nenhuma conta conectada ao Instagram ainda — conecte uma em <b>Contas</b> para
+              poder iniciar.
+            </p>
+          )}
+
           <div className="btn-row">
-            <button className="btn btn-success" disabled={busy || status.automationStatus === 'ACTIVE'} onClick={() => runAction('start')}>Iniciar automação</button>
-            <button className="btn" disabled={busy || status.automationStatus !== 'ACTIVE'} onClick={() => runAction('pause')}>Pausar</button>
+            <button
+              className="btn btn-success"
+              disabled={busy || status.automationStatus === 'ACTIVE' || status.connectedAccounts === 0}
+              onClick={() => runAction('start')}
+            >
+              Iniciar todas
+            </button>
+            <button className="btn" disabled={busy || status.automationStatus !== 'ACTIVE'} onClick={() => runAction('pause')}>Pausar todas</button>
             <button className="btn btn-danger" disabled={busy || !status.automationEnabled} onClick={() => runAction('stop')}>Parar</button>
           </div>
 
