@@ -10,6 +10,7 @@ import { logEvent } from '../services/logger.js';
 import { publishVideo } from '../services/instagramPublisher.js';
 import { moveVideoFile } from '../services/fileManager.js';
 import { validateCoverFile, saveCoverFile, cleanupCoverIfOrphan, resolveEffectiveCoverPath, MAX_COVER_SIZE } from '../services/coverManager.js';
+import { resolveAccount } from '../services/accountManager.js';
 
 ensureDirs();
 const router = express.Router();
@@ -40,8 +41,14 @@ const coverUpload = multer({
 
 // GET /api/videos?status=PENDING|SCHEDULED|PUBLISHING|PUBLISHED|FAILED|ALL
 router.get('/', async (req, res) => {
-  const { status } = req.query;
-  const where = status && status !== 'ALL' ? { status } : {};
+  const { status, accountId, mediaType } = req.query;
+  const where = {};
+  if (status && status !== 'ALL') where.status = status;
+  // Sem accountId a fila continua mostrando tudo — o comportamento antigo,
+  // que as telas ainda não filtradas por conta esperam.
+  if (accountId) where.accountId = accountId;
+  if (mediaType && mediaType !== 'ALL') where.mediaType = mediaType;
+
   const videos = await prisma.video.findMany({ where, orderBy: { position: 'asc' } });
   res.json(videos);
 });
@@ -61,6 +68,11 @@ router.post('/upload', upload.array('videos', 100), async (req, res) => {
     const settings = await prisma.userSettings.findUnique({ where: { id: 1 } });
     const applyDefaultCover = !!(settings?.useDefaultCover && settings?.defaultCoverPath);
 
+    // Conta e tipo de mídia do lote. Sem os campos: conta padrão e REEL,
+    // que é exatamente o comportamento anterior ao multi-conta.
+    const account = await resolveAccount(req.body.accountId);
+    const mediaType = req.body.mediaType === 'STORY' ? 'STORY' : 'REEL';
+
     const created = [];
     for (const file of files) {
       const meta = await getVideoMetadata(file.path);
@@ -72,7 +84,10 @@ router.post('/upload', upload.array('videos', 100), async (req, res) => {
           size: meta.size,
           position: position++,
           status: 'PENDING',
-          coverPath: applyDefaultCover ? settings.defaultCoverPath : null,
+          accountId: account.id,
+          mediaType,
+          // Story não tem capa: o Instagram usa o próprio primeiro frame.
+          coverPath: applyDefaultCover && mediaType === 'REEL' ? settings.defaultCoverPath : null,
         },
       });
       created.push(video);

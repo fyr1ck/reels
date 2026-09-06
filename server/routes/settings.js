@@ -14,25 +14,68 @@ router.get('/', async (req, res) => {
   res.json(settings);
 });
 
+/**
+ * Valida um numero dentro de uma faixa. Devolve undefined quando o campo nao
+ * veio no corpo — assim um PUT parcial nunca sobrescreve o que nao mandou.
+ */
+function parseRange(value, { min, max, field }) {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < min || n > max) {
+    throw new Error(`${field} deve ser um número entre ${min} e ${max}.`);
+  }
+  return Math.round(n);
+}
+
+function parseEnum(value, allowed, field) {
+  if (value === undefined) return undefined;
+  if (!allowed.includes(value)) {
+    throw new Error(`${field} inválido. Valores aceitos: ${allowed.join(', ')}.`);
+  }
+  return value;
+}
+
 router.put('/', async (req, res) => {
   try {
     const {
-      defaultCaption, useDefaultCaption, postsPerDay, keepBrowserOpen, useDefaultCover,
-      cacheAutoCleanEnabled, cacheAutoCleanIntervalHours,
-      scheduleMode, intervalMinutes, intervalStartMode, intervalStartAt,
+      defaultCaption, useDefaultCaption, keepBrowserOpen, useDefaultCover,
+      cacheAutoCleanEnabled, intervalStartAt,
     } = req.body;
-    const settings = await prisma.userSettings.update({
-      where: { id: 1 },
-      data: {
-        defaultCaption, useDefaultCaption, postsPerDay, keepBrowserOpen, useDefaultCover,
-        cacheAutoCleanEnabled, cacheAutoCleanIntervalHours,
-        scheduleMode, intervalMinutes, intervalStartMode, intervalStartAt,
-      },
-    });
+
+    // Sem validação, a rota aceitava qualquer coisa: intervalMinutes negativo,
+    // postsPerDay absurdo e scheduleMode inexistente iam direto para o banco.
+    // O scheduler até sobrevivia (clampa na leitura), mas o painel passava a
+    // exibir valores impossíveis e o modo inválido caía silenciosamente em TIMES.
+    const data = {
+      defaultCaption,
+      useDefaultCaption: useDefaultCaption === undefined ? undefined : !!useDefaultCaption,
+      keepBrowserOpen: keepBrowserOpen === undefined ? undefined : !!keepBrowserOpen,
+      useDefaultCover: useDefaultCover === undefined ? undefined : !!useDefaultCover,
+      cacheAutoCleanEnabled:
+        cacheAutoCleanEnabled === undefined ? undefined : !!cacheAutoCleanEnabled,
+      postsPerDay: parseRange(req.body.postsPerDay, { min: 1, max: 50, field: 'Publicações por dia' }),
+      intervalMinutes: parseRange(req.body.intervalMinutes, { min: 1, max: 1440, field: 'Intervalo' }),
+      cacheAutoCleanIntervalHours: parseRange(req.body.cacheAutoCleanIntervalHours, {
+        min: 1, max: 720, field: 'Intervalo de limpeza',
+      }),
+      scheduleMode: parseEnum(req.body.scheduleMode, ['TIMES', 'INTERVAL'], 'Modo de agendamento'),
+      intervalStartMode: parseEnum(req.body.intervalStartMode, ['NOW', 'AT'], 'Início do intervalo'),
+    };
+
+    if (intervalStartAt !== undefined) {
+      if (intervalStartAt && !/^\d{2}:\d{2}$/.test(intervalStartAt)) {
+        return res.status(400).json({ error: 'Horário de início inválido. Use HH:mm.' });
+      }
+      data.intervalStartAt = intervalStartAt || null;
+    }
+
+    const settings = await prisma.userSettings.update({ where: { id: 1 }, data });
     await generateUpcomingSchedule();
     res.json(settings);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    // Erros de validação são do cliente (400); o resto é falha real (500).
+    const isValidation = /deve ser|inválido/i.test(err.message);
+    res.status(isValidation ? 400 : 500).json({ error: err.message });
   }
 });
 

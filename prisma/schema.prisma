@@ -52,6 +52,14 @@ model Video {
   publishedAt  DateTime?
   failedAt     DateTime?
   publications Publication[]
+  // Conta dona deste video. Null = conta padrao (dados anteriores ao
+  // multi-conta continuam validos e sao tratados como da conta padrao).
+  accountId    String?
+  account      Account?      @relation(fields: [accountId], references: [id])
+  // REEL | STORY — define por qual fluxo do publicador o video sai.
+  mediaType    String        @default("REEL")
+
+  @@index([accountId])
 }
 
 // Um agendamento concreto: vídeo X vinculado a um horário Y
@@ -66,6 +74,10 @@ model Publication {
   attempts     Int       @default(0)
   errorMessage String?
   createdAt    DateTime  @default(now())
+  accountId    String?
+  account      Account?  @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
 }
 
 // Horário recorrente de publicação diária (ex: 12:00, 14:00...)
@@ -73,6 +85,12 @@ model Schedule {
   id      Int     @id @default(autoincrement())
   time    String
   enabled Boolean @default(true)
+  // Horarios sao por conta. Null = conta padrao.
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  // REEL | STORY — permite grades de horario distintas para reels e stories,
+  // como na referencia, que trata "Reels em Massa" e "Stories em Massa" separado.
+  mediaType String  @default("REEL")
   // Variacao aleatoria em minutos aplicada ao redor de `time` (0 = desligado,
   // comportamento identico ao original). Ex: 14:00 com jitter 10 => publica
   // em algum instante entre 13:50 e 14:10. Ver schedulerService.applyJitter.
@@ -243,4 +261,50 @@ model ImportedFile {
 
   @@unique([watchFolderId, sourcePath, size, mtimeMs])
   @@index([watchFolderId])
+}
+
+// ============================================================
+// CONTAS DO INSTAGRAM (multi-conta)
+// ============================================================
+// Cada conta tem sessao Playwright propria em playwright/session/<id>/ e
+// sua propria grade de horarios, fila e estado de automacao.
+//
+// NAO ha mascaramento de fingerprint nem navegador anti-deteccao: o isolamento
+// aqui e apenas de sessao (cookies/storageState separados), para o app nao
+// misturar contas. Rodar muitas contas continua sendo risco de bloqueio pelo
+// Instagram — ver os avisos do README.
+
+model Account {
+  id       String  @id @default(uuid())
+  username String  @unique
+  label    String?
+
+  connected       Boolean   @default(false)
+  lastConnectedAt DateTime?
+
+  // ATIVA quando active = true e automationStatus = ACTIVE
+  active           Boolean @default(true)
+  automationStatus String  @default("PAUSED") // ACTIVE | PAUSED | INTERVENTION_REQUIRED
+
+  // Conta usada por telas que ainda nao selecionam conta explicitamente, e
+  // dona dos registros com accountId null (dados anteriores ao multi-conta).
+  isDefault Boolean @default(false)
+
+  // Configuracao por conta — espelha o que era global em UserSettings
+  defaultCaption    String?
+  useDefaultCaption Boolean @default(true)
+  scheduleMode      String  @default("TIMES") // TIMES | INTERVAL
+  intervalMinutes   Int     @default(5)
+
+  // "Ordem aleatoria" da referencia: em vez de seguir a posicao da fila,
+  // sorteia qual video pendente vai para cada slot.
+  randomOrder Boolean @default(false)
+
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  videos       Video[]
+  schedules    Schedule[]
+  publications Publication[]
 }

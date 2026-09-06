@@ -15,8 +15,10 @@ import Settings from './pages/Settings.jsx';
 import Operacao from './pages/Operacao.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
 import Pastas from './pages/Pastas.jsx';
+import Contas from './pages/Contas.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { ConfirmProvider } from './context/ConfirmContext.jsx';
+import { AccountProvider } from './context/AccountContext.jsx';
 import { api } from './api/client.js';
 
 const PAGE_META = {
@@ -28,6 +30,7 @@ const PAGE_META = {
   '/horarios': { title: 'Horários', breadcrumb: 'Conteúdo' },
   '/biblioteca': { title: 'Legendas & Hashtags', breadcrumb: 'Conteúdo' },
   '/pastas': { title: 'Pastas monitoradas', breadcrumb: 'Conteúdo' },
+  '/contas': { title: 'Contas do Instagram', breadcrumb: 'Instagram' },
   '/instagram': { title: 'Instagram', breadcrumb: 'Conta / Conexão' },
   '/analytics': { title: 'Analytics', breadcrumb: 'Instagram' },
   '/historico': { title: 'Histórico', breadcrumb: 'Atividade' },
@@ -83,6 +86,7 @@ function Shell() {
             <Route path="/horarios" element={<SchedulePage />} />
             <Route path="/biblioteca" element={<Biblioteca />} />
             <Route path="/pastas" element={<Pastas />} />
+            <Route path="/contas" element={<Contas />} />
             <Route path="/instagram" element={<InstagramPage />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/historico" element={<History />} />
@@ -99,7 +103,9 @@ export default function App() {
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <Shell />
+        <AccountProvider>
+          <Shell />
+        </AccountProvider>
       </ConfirmProvider>
     </ToastProvider>
   );

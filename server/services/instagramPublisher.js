@@ -272,9 +272,9 @@ async function waitForAnyText(page, textPatterns, timeoutMs) {
  * Lança erro em qualquer etapa que falhar ou que não puder ser confirmada —
  * a responsabilidade de decidir sobre novas tentativas é do schedulerService.
  */
-export async function publishVideo({ filepath, caption, videoName, coverPath }) {
+export async function publishVideo({ filepath, caption, videoName, coverPath, accountId }) {
   const start = Date.now();
-  const context = await getBrowserContext();
+  const context = await getBrowserContext(accountId);
   const page = await context.newPage();
 
   try {
@@ -351,6 +351,77 @@ export async function publishVideo({ filepath, caption, videoName, coverPath }) 
       // Mantém o contexto (sessão) vivo, mas não fecha o browser inteiro
       // aqui — o fechamento efetivo é controlado por automation stop/pause.
     }
+  }
+}
+
+/**
+ * Publica um STORY.
+ *
+ * O fluxo e mais curto que o do Reel: nao ha telas de corte/filtro, nao ha
+ * legenda e nao ha capa — sobe o arquivo e confirma. Por isso vive numa
+ * funcao propria em vez de virar um `if` dentro de publishVideo, que ja e
+ * longo e cuida de um fluxo bem diferente.
+ *
+ * ATENCAO: os seletores de story em selectors.js NAO foram verificados
+ * contra a interface real do Instagram (o ambiente de desenvolvimento nao
+ * tinha conta conectada). Rode a primeira vez com HEADLESS=false para
+ * acompanhar e ajustar o que estiver diferente.
+ */
+export async function publishStory({ filepath, videoName, accountId }) {
+  const start = Date.now();
+  const context = await getBrowserContext(accountId);
+  const page = await context.newPage();
+
+  try {
+    await page.goto('https://www.instagram.com/', { waitUntil: 'domcontentloaded' });
+    await handleCheckpointIfNeeded(page, videoName);
+
+    const opened = await clickFirstMatch(page, SELECTORS.createButton);
+    if (!opened) {
+      throw new Error('Botão de "Criar" não encontrado. Verifique server/playwright/selectors.js.');
+    }
+    await page.waitForTimeout(1000);
+
+    const choseStory = await clickFirstMatch(page, SELECTORS.storyOption);
+    if (!choseStory) {
+      throw new Error('Opção "Story" não encontrada no menu de criação. Verifique SELECTORS.storyOption.');
+    }
+    await page.waitForTimeout(1200);
+
+    // Mesma checagem do fluxo de Reel: confirma que a tela de upload abriu
+    // antes de tentar enviar o arquivo, para nao prosseguir com o menu aberto.
+    const selectBtnCount = await countAnyMatch(page, SELECTORS.selectFromComputerButton);
+    const fileInputCount = await page.locator(SELECTORS.fileInput).count();
+    if (selectBtnCount === 0 && fileInputCount === 0) {
+      throw new Error('Não chegou na tela de upload do story. Verifique SELECTORS.storyOption.');
+    }
+
+    await uploadFile(page, filepath);
+    await logEvent({ video: videoName, action: 'STORY_ARQUIVO_SELECIONADO', status: 'INFO' });
+
+    await handleCheckpointIfNeeded(page, videoName);
+    await page.waitForTimeout(2500); // processamento do video pelo Instagram
+
+    const shared = await clickFirstMatch(page, SELECTORS.storyShareButton);
+    if (!shared) {
+      throw new Error('Botão de publicar story não encontrado. Verifique SELECTORS.storyShareButton.');
+    }
+
+    await logEvent({
+      video: videoName,
+      action: 'STORY_AGUARDANDO_CONFIRMACAO',
+      status: 'INFO',
+      message: 'Aguardando confirmação observável de sucesso.',
+    });
+
+    const confirmed = await waitForAnyText(page, SELECTORS.storySuccessIndicators.textPatterns, 90000);
+    if (!confirmed) {
+      throw new Error('Não foi possível confirmar o story: nenhum indicador de sucesso apareceu em 90s.');
+    }
+
+    return { success: true, durationMs: Date.now() - start };
+  } finally {
+    await page.close().catch(() => {});
   }
 }
 

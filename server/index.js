@@ -6,6 +6,7 @@ import { ensureDirs, DIRS } from './services/fileManager.js';
 import { startSchedulerLoop } from './services/schedulerService.js';
 import { startCacheAutoCleanLoop } from './services/cacheManager.js';
 import { startWatchFolderLoop } from './services/watchFolderService.js';
+import { ensureDefaultAccount, adoptLegacySession, refreshConnectionFlags } from './services/accountManager.js';
 import { closeRenderBrowser } from './services/reelRenderer.js';
 import { prisma } from './db/prisma.js';
 
@@ -22,6 +23,7 @@ import storageRouter from './routes/storage.js';
 import libraryRouter from './routes/library.js';
 import operationRouter from './routes/operation.js';
 import watchFoldersRouter from './routes/watchFolders.js';
+import accountsRouter from './routes/accounts.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +46,7 @@ app.use('/api/storage', storageRouter);
 app.use('/api/library', libraryRouter);
 app.use('/api/operation', operationRouter);
 app.use('/api/watch-folders', watchFoldersRouter);
+app.use('/api/accounts', accountsRouter);
 
 // Serve as imagens de capa (individuais e padrão) diretamente do disco.
 // Sistema de capa personalizada — ver server/services/coverManager.js.
@@ -73,6 +76,13 @@ async function bootstrap() {
   // Garante que sempre exista uma linha de UserSettings (id fixo = 1)
   await prisma.userSettings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
 
+  // Multi-conta: garante a conta padrão e adota a sessão do tempo em que o
+  // app era de conta única — quem já estava logado não precisa logar de novo.
+  await ensureDefaultAccount();
+  const adopted = await adoptLegacySession();
+  if (adopted) console.log(`↪ Sessão anterior adotada por @${adopted.username}.`);
+  await refreshConnectionFlags();
+
   startCacheAutoCleanLoop(prisma);
 
   // Importação de pastas monitoradas roda independente da automação: mesmo
@@ -85,11 +95,13 @@ async function bootstrap() {
   });
 
   // Se a automação estava ativa antes do servidor reiniciar, retoma o loop
-  const settings = await prisma.userSettings.findUnique({ where: { id: 1 } });
-  if (settings?.automationEnabled && settings.automationStatus === 'ACTIVE') {
-    startSchedulerLoop();
-    console.log('▶ Automação retomada automaticamente (estava ativa antes do reinício).');
-  }
+  // O loop sobe sempre. Quem decide se algo é publicado é o estado de cada
+  // conta (active + automationStatus + sessão em disco), avaliado a cada tick
+  // — com multi-conta, uma flag global não consegue mais responder por todas.
+  startSchedulerLoop();
+
+  const ativas = await prisma.account.count({ where: { active: true, automationStatus: 'ACTIVE' } });
+  if (ativas > 0) console.log(`▶ ${ativas} conta(s) com automação ativa.`);
 }
 
 bootstrap().catch((err) => {

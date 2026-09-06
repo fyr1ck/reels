@@ -105,6 +105,49 @@ export const SELECTORS = {
     'textarea[aria-label="Write a caption…"]',
   ],
 
+  // ============================================================
+  // STORIES
+  // ============================================================
+  // ATENÇÃO: diferente dos seletores de Reel acima, estes NÃO foram
+  // verificados contra a interface real do Instagram — foram escritos a
+  // partir dos rótulos conhecidos da UI. Na primeira publicação de story,
+  // acompanhe com HEADLESS=false e ajuste o que estiver diferente. É este o
+  // único arquivo que precisa de manutenção quando a interface muda.
+
+  // Opção "Story" dentro do menu "Criar"
+  storyOption: [
+    'role=link[name="Story"i]',
+    'role=button[name="Story"i]',
+    'text="Story"',
+    'text="Stories"',
+    'text=Adicionar ao story',
+    'text=Add to story',
+  ],
+
+  // Botão final que publica o story
+  storyShareButton: [
+    'role=button[name="Adicionar ao story"i]',
+    'role=button[name="Add to story"i]',
+    'role=button[name="Compartilhar no story"i]',
+    'role=button[name="Share to story"i]',
+    'text="Adicionar ao story"',
+    'text="Add to story"',
+    'text="Compartilhar"',
+    'text="Share"',
+  ],
+
+  // Confirmação de story publicado
+  storySuccessIndicators: {
+    textPatterns: [
+      'Story compartilhado',
+      'Seu story foi compartilhado',
+      'Story adicionado',
+      'Your story has been shared',
+      'Story shared',
+      'Added to your story',
+    ],
+  },
+
   // Indicadores observáveis de que a publicação foi concluída com sucesso.
   // A automação só considera "publicado" quando um destes aparece.
   //

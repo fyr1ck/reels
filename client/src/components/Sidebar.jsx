@@ -3,9 +3,10 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, ListVideo, CalendarDays, Clock, BarChart3,
   History, ScrollText, Settings, ChevronsLeft, ChevronsRight, Film, Camera, Wand2,
-  Activity, Hash, FolderSync,
+  Activity, Hash, FolderSync, Users,
 } from 'lucide-react';
 import AutomationBadge from './AutomationBadge.jsx';
+import { useAccounts } from '../context/AccountContext.jsx';
 
 const NAV_GROUPS = [
   {
@@ -29,6 +30,7 @@ const NAV_GROUPS = [
   {
     label: 'Instagram',
     items: [
+      { to: '/contas', label: 'Contas do Instagram', icon: Users },
       { to: "/instagram", label: "Conta / Conexão", icon: Camera },
       { to: '/analytics', label: 'Analytics', icon: BarChart3 },
     ],
@@ -48,6 +50,7 @@ const NAV_GROUPS = [
 
 export default function Sidebar({ automationStatus }) {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('rm.sidebarCollapsed') === '1');
+  const { accounts, selectedId, selectAccount } = useAccounts();
 
   useEffect(() => {
     localStorage.setItem('rm.sidebarCollapsed', collapsed ? '1' : '0');
@@ -70,6 +73,20 @@ export default function Sidebar({ automationStatus }) {
           {collapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
         </button>
       </div>
+
+      {/* Seletor de conta: define a conta usada pelas telas por conta
+          (Horários, uploads). Escondido quando a sidebar está recolhida. */}
+      {!collapsed && accounts.length > 0 && (
+        <div className="acc-switcher">
+          <select value={selectedId || ''} onChange={(e) => selectAccount(e.target.value)}>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                @{a.username}{a.connected ? '' : ' (desconectada)'}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <nav className="nav-list">
         {NAV_GROUPS.map((group, gi) => (
