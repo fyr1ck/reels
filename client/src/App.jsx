@@ -13,6 +13,7 @@ import Settings from './pages/Settings.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
 import Pastas from './pages/Pastas.jsx';
 import Contas from './pages/Contas.jsx';
+import Armazenamento from './pages/Armazenamento.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { ConfirmProvider } from './context/ConfirmContext.jsx';
 import { AccountProvider } from './context/AccountContext.jsx';
@@ -29,6 +30,7 @@ const PAGE_META = {
   '/contas': { title: 'Contas do Instagram', breadcrumb: 'Instagram' },
   '/historico': { title: 'Histórico', breadcrumb: 'Atividade' },
   '/logs': { title: 'Logs', breadcrumb: 'Atividade' },
+  '/armazenamento': { title: 'Armazenamento', breadcrumb: 'Sistema' },
   '/configuracoes': { title: 'Configurações', breadcrumb: 'Sistema' },
 };
 
@@ -90,6 +92,7 @@ function Shell() {
             <Route path="/analytics" element={<Navigate to="/" replace />} />
             <Route path="/historico" element={<History />} />
             <Route path="/logs" element={<Logs />} />
+            <Route path="/armazenamento" element={<Armazenamento />} />
             <Route path="/configuracoes" element={<Settings />} />
           </Routes>
         </main>

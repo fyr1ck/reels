@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, ListVideo, CalendarDays, Clock, BarChart3,
   History, ScrollText, Settings, ChevronsLeft, ChevronsRight, Film, Wand2,
-  Hash, FolderSync, Users,
+  Hash, FolderSync, Users, HardDrive,
 } from 'lucide-react';
 import AutomationBadge from './AutomationBadge.jsx';
 import { useAccounts } from '../context/AccountContext.jsx';
@@ -42,7 +42,10 @@ const NAV_GROUPS = [
   },
   {
     label: 'Sistema',
-    items: [{ to: '/configuracoes', label: 'Configurações', icon: Settings }],
+    items: [
+      { to: '/armazenamento', label: 'Armazenamento', icon: HardDrive },
+      { to: '/configuracoes', label: 'Configurações', icon: Settings },
+    ],
   },
 ];
 

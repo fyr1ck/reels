@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import { useAccounts } from '../context/AccountContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 
 const INTERVAL_PRESETS = [1, 2, 5, 10, 15, 30, 60];
@@ -31,18 +32,28 @@ export default function SchedulePage() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingSchedule, setSavingSchedule] = useState(false);
 
+  const { selectedId, selected } = useAccounts();
+  // Grade de REEL e de STORY são independentes: a conta pode postar reel às
+  // 12h e story às 12h no mesmo dia. O seletor abaixo escolhe qual editar.
+  const [mediaType, setMediaType] = useState('REEL');
+
   async function load() {
-    const [s1, s2] = await Promise.all([api.get('/schedule'), api.get('/settings')]);
+    const [s1, s2] = await Promise.all([
+      api.get('/schedule', { params: { accountId: selectedId || undefined, mediaType } }),
+      api.get('/settings'),
+    ]);
     setSchedules(s1.data);
     setSettings(s2.data);
   }
 
-  useEffect(() => { load(); }, []);
+  // Recarrega ao trocar de conta ou de tipo — sem isso a tela seguiria
+  // mostrando a grade da conta anterior.
+  useEffect(() => { load(); }, [selectedId, mediaType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function addTime() {
     setError('');
     try {
-      await api.post('/schedule', { time: newTime });
+      await api.post('/schedule', { time: newTime, accountId: selectedId, mediaType });
       await load();
     } catch (e) {
       setError(e.response?.data?.error || 'Erro ao adicionar horário.');
@@ -111,7 +122,19 @@ export default function SchedulePage() {
     <div>
       <div className="page-header">
         <h1>Horários</h1>
-        <p>Defina quantas publicações deseja fazer por dia e em quais horários exatos.</p>
+        <p>
+          Grade de publicação de <b>@{selected?.username || '—'}</b>. Cada conta tem a sua;
+          troque no seletor do topo do menu.
+        </p>
+      </div>
+
+      <div className="tabs">
+        <button className={`tab${mediaType === 'REEL' ? ' active' : ''}`} onClick={() => setMediaType('REEL')}>
+          Reels
+        </button>
+        <button className={`tab${mediaType === 'STORY' ? ' active' : ''}`} onClick={() => setMediaType('STORY')}>
+          Stories
+        </button>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>

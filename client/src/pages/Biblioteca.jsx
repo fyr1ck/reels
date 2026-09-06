@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, Trash2, Power, Wand2, Eye } from 'lucide-react';
+import { Plus, Trash2, Power, Wand2, Eye, FileText, Save } from 'lucide-react';
 import { api } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useConfirm } from '../context/ConfirmContext.jsx';
@@ -29,14 +29,22 @@ export default function Biblioteca() {
   const [preview, setPreview] = useState(null);
   const [applying, setApplying] = useState(false);
 
+  // Legenda padrão: veio das Configurações para cá, junto do resto do texto
+  // que vai para as publicações. É o texto de fallback — usado só quando o
+  // vídeo não tem legenda própria nem recebeu uma da biblioteca.
+  const [settings, setSettings] = useState(null);
+  const [savingCaption, setSavingCaption] = useState(false);
+
   const load = useCallback(async () => {
     try {
-      const [{ data: c }, { data: g }] = await Promise.all([
+      const [{ data: c }, { data: g }, { data: st }] = await Promise.all([
         api.get('/library/captions'),
         api.get('/library/hashtags'),
+        api.get('/settings'),
       ]);
       setCaptions(c);
       setGroups(g);
+      setSettings(st);
     } catch {
       toast.error('Não foi possível carregar a biblioteca.');
     } finally {
@@ -77,6 +85,22 @@ export default function Biblioteca() {
     await api.delete(`/library/captions/${c.id}`);
     await load();
     toast.success('Legenda removida.');
+  }
+
+  async function saveDefaultCaption() {
+    setSavingCaption(true);
+    try {
+      const { data } = await api.put('/settings', {
+        defaultCaption: settings.defaultCaption,
+        useDefaultCaption: settings.useDefaultCaption,
+      });
+      setSettings(data);
+      toast.success('Legenda padrão salva.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao salvar a legenda padrão.');
+    } finally {
+      setSavingCaption(false);
+    }
   }
 
   // ---------- hashtags ----------
@@ -173,6 +197,9 @@ export default function Biblioteca() {
         </button>
         <button className={`tab${tab === 'aplicar' ? ' active' : ''}`} onClick={() => setTab('aplicar')}>
           Aplicar na fila
+        </button>
+        <button className={`tab${tab === 'padrao' ? ' active' : ''}`} onClick={() => setTab('padrao')}>
+          Legenda padrão
         </button>
       </div>
 
@@ -315,6 +342,39 @@ export default function Biblioteca() {
             )}
           </div>
         </>
+      )}
+
+      {tab === 'padrao' && settings && (
+        <div className="card">
+          <h3 className="section-title"><FileText size={15} /> Legenda padrão</h3>
+          <p className="text-faint" style={{ fontSize: 12, marginBottom: 12 }}>
+            Último recurso: usada só quando o vídeo não tem legenda própria nem recebeu uma
+            da biblioteca. Para variar o texto entre as publicações, use as legendas acima —
+            uma legenda fixa repetida em todo post é o padrão mais fácil de identificar.
+          </p>
+
+          <textarea
+            rows={5}
+            value={settings.defaultCaption || ''}
+            onChange={(e) => setSettings({ ...settings, defaultCaption: e.target.value })}
+            placeholder="🚀 Transforme sua presença digital. Confira o link da bio!"
+          />
+
+          <label className="checkbox-row" style={{ marginTop: 12 }}>
+            <input
+              type="checkbox"
+              checked={settings.useDefaultCaption}
+              onChange={(e) => setSettings({ ...settings, useDefaultCaption: e.target.checked })}
+            />
+            Usar a legenda padrão quando o vídeo não tiver legenda
+          </label>
+
+          <div className="btn-row" style={{ marginTop: 16 }}>
+            <button className="btn btn-primary" onClick={saveDefaultCaption} disabled={savingCaption}>
+              <Save size={15} /> {savingCaption ? 'Salvando…' : 'Salvar legenda padrão'}
+            </button>
+          </div>
+        </div>
       )}
 
       {tab === 'aplicar' && (

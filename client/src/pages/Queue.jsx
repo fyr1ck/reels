@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { api, formatDuration, formatSize } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useConfirm } from '../context/ConfirmContext.jsx';
+import { useAccounts } from '../context/AccountContext.jsx';
 
 const TABS = [
   { key: 'PENDING', label: 'Pendentes' },
@@ -12,6 +13,7 @@ const TABS = [
 export default function Queue() {
   const toast = useToast();
   const confirmAction = useConfirm();
+  const { selectedId, selected } = useAccounts();
 
   const [tab, setTab] = useState('PENDING');
   const [videos, setVideos] = useState([]);
@@ -35,6 +37,14 @@ export default function Queue() {
   const [coverModal, setCoverModal] = useState(null); // { videoId, file, previewUrl, applyToAll }
   const [savingCover, setSavingCover] = useState(false);
 
+  // Capa padrão: saiu das Configurações e veio para cá, que é onde as capas
+  // dos vídeos são realmente gerenciadas. Ela é aplicada a cada novo vídeo
+  // que entra na fila — decisão que pertence à fila, não a um menu de sistema.
+  const [settings, setSettings] = useState(null);
+  const [uploadMediaType, setUploadMediaType] = useState('REEL');
+  const [uploadingDefaultCover, setUploadingDefaultCover] = useState(false);
+  const defaultCoverInputRef = useRef(null);
+
   const load = useCallback(async (status) => {
     setLoading(true);
     const res = await api.get('/videos', { params: { status } });
@@ -44,11 +54,17 @@ export default function Queue() {
 
   useEffect(() => { load(tab); setSelectedIds(new Set()); }, [tab, load]);
 
+  useEffect(() => { api.get('/settings').then((r) => setSettings(r.data)).catch(() => {}); }, []);
+
   async function handleFiles(fileList) {
     const files = Array.from(fileList).filter((f) => f.type.startsWith('video/'));
     if (files.length === 0) return;
     const formData = new FormData();
     files.forEach((f) => formData.append('videos', f));
+    // Sem isso o vídeo cairia sempre na conta padrão como REEL, ignorando o
+    // seletor da sidebar e o tipo escolhido aqui.
+    if (selectedId) formData.append('accountId', selectedId);
+    formData.append('mediaType', uploadMediaType);
     setUploading(true);
     try {
       await api.post('/videos/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -226,11 +242,68 @@ export default function Queue() {
     }
   }
 
+  async function onDefaultCoverChosen(e) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('cover', file);
+    setUploadingDefaultCover(true);
+    try {
+      const { data } = await api.post('/settings/default-cover', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setSettings(data);
+      toast.success('Capa padrão definida.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Não foi possível carregar a imagem.');
+    } finally {
+      setUploadingDefaultCover(false);
+    }
+  }
+
+  async function removeDefaultCover() {
+    const ok = await confirmAction({
+      title: 'Remover capa padrão?',
+      description: 'Apenas a configuração padrão sai. Vídeos que já usam essa imagem como capa individual não são afetados.',
+      confirmLabel: 'Remover',
+    });
+    if (!ok) return;
+    try {
+      const { data } = await api.delete('/settings/default-cover');
+      setSettings(data);
+      toast.success('Capa padrão removida.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao remover a capa padrão.');
+    }
+  }
+
+  async function toggleUseDefaultCover(checked) {
+    try {
+      const { data } = await api.put('/settings', { useDefaultCover: checked });
+      setSettings(data);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao salvar.');
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
         <h1>Fila de vídeos</h1>
-        <p>Adicione vídeos, defina a ordem de publicação e acompanhe pendentes, publicados e falhados.</p>
+        <p>
+          Fila de <b>@{selected?.username || '—'}</b>. Novos vídeos entram nesta conta como{' '}
+          <b>{uploadMediaType === 'STORY' ? 'story' : 'reel'}</b> — troque a conta no seletor do menu.
+        </p>
+      </div>
+
+      <div className="upload-type">
+        <span className="text-faint">Enviar como:</span>
+        <button className={`btn btn-sm${uploadMediaType === 'REEL' ? ' btn-primary' : ''}`}
+                onClick={() => setUploadMediaType('REEL')}>Reel</button>
+        <button className={`btn btn-sm${uploadMediaType === 'STORY' ? ' btn-primary' : ''}`}
+                onClick={() => setUploadMediaType('STORY')}>Story</button>
       </div>
 
       <input
@@ -258,6 +331,53 @@ export default function Queue() {
       >
         {uploading ? '⏳ Enviando vídeos...' : '📤 Arraste vídeos aqui ou clique para selecionar (múltiplos arquivos suportados)'}
       </div>
+
+      <input
+        ref={defaultCoverInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png,image/webp"
+        style={{ display: 'none' }}
+        onChange={onDefaultCoverChosen}
+      />
+
+      {settings && (
+        <div className="card default-cover-bar">
+          <div className="cover-thumb" style={{ width: 44, height: 58 }}>
+            {settings.defaultCoverPath
+              ? <img src={`/api/covers/${settings.defaultCoverPath}`} alt="Capa padrão" />
+              : '🖼️'}
+          </div>
+
+          <div className="dcb-text">
+            <b>Capa padrão</b>
+            <span className="text-faint">
+              {settings.defaultCoverPath
+                ? 'Aplicada automaticamente a cada novo vídeo que entra na fila.'
+                : 'Nenhuma definida — os novos vídeos entram sem capa.'}
+            </span>
+          </div>
+
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={settings.useDefaultCover}
+              disabled={!settings.defaultCoverPath}
+              onChange={(e) => toggleUseDefaultCover(e.target.checked)}
+            />
+            Usar
+          </label>
+
+          <div className="btn-row">
+            <button className="btn btn-sm" disabled={uploadingDefaultCover}
+                    onClick={() => defaultCoverInputRef.current?.click()}>
+              {uploadingDefaultCover ? 'Enviando…' : (settings.defaultCoverPath ? 'Trocar' : 'Escolher imagem')}
+            </button>
+            {settings.defaultCoverPath && (
+              <button className="btn btn-sm btn-danger" onClick={removeDefaultCover}>Remover</button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="tabs">
         {TABS.map((t) => (
