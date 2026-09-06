@@ -23,3 +23,6 @@ videos/editor-assets/*
 !videos/editor-tmp/.gitkeep
 !videos/editor-source/.gitkeep
 !videos/editor-assets/.gitkeep
+
+# Config local do Claude Code
+.claude/
