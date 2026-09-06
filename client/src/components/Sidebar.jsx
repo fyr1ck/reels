@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, ListVideo, CalendarDays, Clock, BarChart3,
-  History, ScrollText, Settings, ChevronsLeft, ChevronsRight, Film, Camera, Wand2,
-  Activity, Hash, FolderSync, Users,
+  History, ScrollText, Settings, ChevronsLeft, ChevronsRight, Film, Wand2,
+  Hash, FolderSync, Users,
 } from 'lucide-react';
 import AutomationBadge from './AutomationBadge.jsx';
 import { useAccounts } from '../context/AccountContext.jsx';
@@ -11,29 +11,27 @@ import { useAccounts } from '../context/AccountContext.jsx';
 const NAV_GROUPS = [
   {
     label: null, // grupo sem título (Dashboard sozinho no topo)
+    items: [{ to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true }],
+  },
+  {
+    label: 'Publicação',
     items: [
-      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-      { to: '/operacao', label: 'Operação', icon: Activity },
+      { to: '/fila', label: 'Fila de vídeos', icon: ListVideo },
+      { to: '/horarios', label: 'Horários', icon: Clock },
+      { to: '/calendario', label: 'Calendário', icon: CalendarDays },
     ],
   },
   {
     label: 'Conteúdo',
     items: [
-      { to: '/fila', label: 'Fila de vídeos', icon: ListVideo },
       { to: '/editor-em-massa', label: 'Editor em Massa', icon: Wand2 },
-      { to: '/calendario', label: 'Calendário', icon: CalendarDays },
-      { to: '/horarios', label: 'Horários', icon: Clock },
       { to: '/biblioteca', label: 'Legendas & Hashtags', icon: Hash },
       { to: '/pastas', label: 'Pastas monitoradas', icon: FolderSync },
     ],
   },
   {
     label: 'Instagram',
-    items: [
-      { to: '/contas', label: 'Contas do Instagram', icon: Users },
-      { to: "/instagram", label: "Conta / Conexão", icon: Camera },
-      { to: '/analytics', label: 'Analytics', icon: BarChart3 },
-    ],
+    items: [{ to: '/contas', label: 'Contas', icon: Users }],
   },
   {
     label: 'Atividade',

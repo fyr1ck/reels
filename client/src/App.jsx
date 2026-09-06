@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar.jsx';
 import Topbar from './components/Topbar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -7,12 +7,9 @@ import Queue from './pages/Queue.jsx';
 import ReelEditor from './pages/ReelEditor.jsx';
 import CalendarPage from './pages/CalendarPage.jsx';
 import SchedulePage from './pages/SchedulePage.jsx';
-import InstagramPage from './pages/InstagramPage.jsx';
-import Analytics from './pages/Analytics.jsx';
 import History from './pages/History.jsx';
 import Logs from './pages/Logs.jsx';
 import Settings from './pages/Settings.jsx';
-import Operacao from './pages/Operacao.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
 import Pastas from './pages/Pastas.jsx';
 import Contas from './pages/Contas.jsx';
@@ -23,7 +20,6 @@ import { api } from './api/client.js';
 
 const PAGE_META = {
   '/': { title: 'Dashboard', breadcrumb: 'Visão geral' },
-  '/operacao': { title: 'Operação', breadcrumb: 'Visão geral' },
   '/fila': { title: 'Fila de vídeos', breadcrumb: 'Conteúdo' },
   '/editor-em-massa': { title: 'Editor em Massa', breadcrumb: 'Conteúdo' },
   '/calendario': { title: 'Calendário', breadcrumb: 'Conteúdo' },
@@ -31,8 +27,6 @@ const PAGE_META = {
   '/biblioteca': { title: 'Legendas & Hashtags', breadcrumb: 'Conteúdo' },
   '/pastas': { title: 'Pastas monitoradas', breadcrumb: 'Conteúdo' },
   '/contas': { title: 'Contas do Instagram', breadcrumb: 'Instagram' },
-  '/instagram': { title: 'Instagram', breadcrumb: 'Conta / Conexão' },
-  '/analytics': { title: 'Analytics', breadcrumb: 'Instagram' },
   '/historico': { title: 'Histórico', breadcrumb: 'Atividade' },
   '/logs': { title: 'Logs', breadcrumb: 'Atividade' },
   '/configuracoes': { title: 'Configurações', breadcrumb: 'Sistema' },
@@ -79,7 +73,6 @@ function Shell() {
         <main className="main">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/operacao" element={<Operacao />} />
             <Route path="/fila" element={<Queue />} />
             <Route path="/editor-em-massa" element={<ReelEditor />} />
             <Route path="/calendario" element={<CalendarPage />} />
@@ -87,8 +80,14 @@ function Shell() {
             <Route path="/biblioteca" element={<Biblioteca />} />
             <Route path="/pastas" element={<Pastas />} />
             <Route path="/contas" element={<Contas />} />
-            <Route path="/instagram" element={<InstagramPage />} />
-            <Route path="/analytics" element={<Analytics />} />
+
+            {/* Telas fundidas. Os caminhos antigos seguem válidos para não
+                quebrar links salvos ou a aba aberta de quem já usava o app:
+                  /operacao  -> a cobertura agora vive no Dashboard
+                  /instagram -> a conexão agora é por conta, em /contas */}
+            <Route path="/operacao" element={<Navigate to="/" replace />} />
+            <Route path="/instagram" element={<Navigate to="/contas" replace />} />
+            <Route path="/analytics" element={<Navigate to="/" replace />} />
             <Route path="/historico" element={<History />} />
             <Route path="/logs" element={<Logs />} />
             <Route path="/configuracoes" element={<Settings />} />

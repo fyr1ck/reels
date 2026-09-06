@@ -1,10 +1,36 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Film, CheckCircle2, Package, CalendarClock, Bot, Clock3, AlertTriangle, Sparkles, RotateCcw } from 'lucide-react';
+import { Film, CheckCircle2, Package, CalendarClock, Bot, Clock3, AlertTriangle, Sparkles, Trash2, Gauge } from 'lucide-react';
 import { api, formatDateTime } from '../api/client.js';
 import AutomationBadge from '../components/AutomationBadge.jsx';
 import { DashboardSkeleton } from '../components/ui/Skeleton.jsx';
 import { useToast } from '../context/ToastContext.jsx';
 import { useConfirm } from '../context/ConfirmContext.jsx';
+
+const HEALTH_BADGE = {
+  success: 'badge-success',
+  warning: 'badge-warning',
+  danger: 'badge-danger',
+  neutral: 'badge-neutral',
+};
+
+function coverageLevel(days) {
+  if (days == null) return 'neutral';
+  if (days < 3) return 'danger';
+  if (days < 7) return 'warning';
+  return 'success';
+}
+
+function formatDays(days) {
+  if (days < 1) return `${Math.round(days * 24)}h`;
+  return `${days} ${days === 1 ? 'dia' : 'dias'}`;
+}
+
+function describeCoverage(c) {
+  if (c.dailyRate === 0) return 'Nenhum horário configurado — sem ritmo definido, não dá para estimar.';
+  if (c.availableVideos === 0) return 'A fila está vazia. Adicione vídeos para a automação ter o que publicar.';
+  const ritmo = c.scheduleMode === 'INTERVAL' ? `a cada ${c.intervalMinutes} min` : `${c.dailyRate} por dia`;
+  return `${c.availableVideos} vídeo(s) na fila publicando ${ritmo}.`;
+}
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -16,15 +42,21 @@ function getGreeting() {
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [status, setStatus] = useState(null);
+  const [coverage, setCoverage] = useState(null);
   const [busy, setBusy] = useState(false);
   const [resetting, setResetting] = useState(false);
   const toast = useToast();
   const confirmAction = useConfirm();
 
   const load = useCallback(async () => {
-    const [s1, s2] = await Promise.all([api.get('/dashboard/summary'), api.get('/automation/status')]);
+    const [s1, s2, s3] = await Promise.all([
+      api.get('/dashboard/summary'),
+      api.get('/automation/status'),
+      api.get('/operation'),
+    ]);
     setSummary(s1.data);
     setStatus(s2.data);
+    setCoverage(s3.data);
   }, []);
 
   useEffect(() => {
@@ -63,7 +95,7 @@ export default function Dashboard() {
 
   async function resetDashboard() {
     const ok = await confirmAction({
-      title: 'Resetar dashboard?',
+      title: 'Apagar publicados e logs?',
       description: 'Isso apaga DEFINITIVAMENTE os registros de vídeos publicados e falhados (banco + arquivo, se existir) e todo o histórico de logs, zerando os números. Vídeos pendentes/agendados e configurações não são afetados. Essa ação não pode ser desfeita.',
       danger: true,
       confirmLabel: 'Resetar',
@@ -100,8 +132,12 @@ export default function Dashboard() {
           <h1>{getGreeting()} 👋</h1>
           <p>Veja o que está acontecendo com suas publicações.</p>
         </div>
-        <button className="btn btn-sm" onClick={resetDashboard} disabled={resetting} title="Limpa o histórico de logs/erros exibido no dashboard">
-          <RotateCcw size={13} /> {resetting ? 'Resetando...' : 'Resetar dashboard'}
+        {/* Rótulo antigo era "Resetar dashboard", o que sugeria limpar apenas
+            os números da tela — mas a ação apaga vídeos do disco e o histórico
+            inteiro. O nome agora diz o que ela faz. */}
+        <button className="btn btn-sm btn-danger" onClick={resetDashboard} disabled={resetting}
+                title="Apaga publicados/falhados do banco e do disco, e todo o histórico de logs">
+          <Trash2 size={13} /> {resetting ? 'Apagando…' : 'Apagar publicados e logs'}
         </button>
       </div>
 
@@ -122,6 +158,28 @@ export default function Dashboard() {
             <AlertTriangle size={16} />
             Há vídeos com falha definitiva de publicação. Revise em <b>&nbsp;Fila de vídeos → Falhados&nbsp;</b> antes de retomar.
           </p>
+        </div>
+      )}
+
+      {coverage && (
+        <div className="cov-hero card">
+          <div>
+            <div className="cov-label"><Gauge size={13} /> Cobertura da fila</div>
+            <div className="cov-value">
+              {coverage.daysCoverage == null ? '—' : formatDays(coverage.daysCoverage)}
+            </div>
+            <div className="text-dim">{describeCoverage(coverage)}</div>
+          </div>
+          <div className="cov-side">
+            <span className={`badge ${HEALTH_BADGE[coverage.health.level]}`}>{coverage.health.label}</span>
+            <div className="cov-bar">
+              <div
+                className={`cov-bar-fill ${coverageLevel(coverage.daysCoverage)}`}
+                style={{ width: `${Math.min(100, ((coverage.daysCoverage || 0) / 14) * 100)}%` }}
+              />
+            </div>
+            <span className="text-faint">meta: 14 dias</span>
+          </div>
         </div>
       )}
 
