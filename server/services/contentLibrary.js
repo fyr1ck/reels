@@ -198,3 +198,39 @@ export async function applyLibraryToQueue(opts = {}) {
     preview,
   };
 }
+
+/**
+ * Monta UMA legenda pronta a partir da biblioteca, para uso no momento em
+ * que um video entra na fila (importacao automatica de pasta monitorada).
+ *
+ * Reaproveita o mesmo rodizio ponderado da aplicacao em lote — quem importa
+ * 200 videos ao longo da semana recebe a mesma distribuicao equilibrada de
+ * quem aplicou tudo de uma vez. Devolve null quando a biblioteca esta vazia,
+ * deixando o chamador seguir com a legenda padrao das configuracoes.
+ */
+export async function pickCaptionForNewVideo() {
+  const [captions, groups] = await Promise.all([
+    prisma.captionTemplate.findMany({ where: { enabled: true }, orderBy: { usedCount: 'asc' } }),
+    prisma.hashtagGroup.findMany({ where: { enabled: true }, orderBy: { usedCount: 'asc' } }),
+  ]);
+
+  if (captions.length === 0 && groups.length === 0) return null;
+
+  const [caption] = rotate(captions, 1);
+  const [group] = rotate(groups, 1);
+
+  if (caption) {
+    await prisma.captionTemplate.update({
+      where: { id: caption.id },
+      data: { usedCount: { increment: 1 } },
+    });
+  }
+  if (group) {
+    await prisma.hashtagGroup.update({
+      where: { id: group.id },
+      data: { usedCount: { increment: 1 } },
+    });
+  }
+
+  return composeCaption(caption?.text || '', group ? normalizeHashtags(group.hashtags) : []);
+}

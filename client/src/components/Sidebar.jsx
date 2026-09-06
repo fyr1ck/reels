@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, ListVideo, CalendarDays, Clock, BarChart3,
   History, ScrollText, Settings, ChevronsLeft, ChevronsRight, Film, Camera, Wand2,
-  Activity, Hash,
+  Activity, Hash, FolderSync,
 } from 'lucide-react';
 import AutomationBadge from './AutomationBadge.jsx';
 
@@ -23,6 +23,7 @@ const NAV_GROUPS = [
       { to: '/calendario', label: 'Calendário', icon: CalendarDays },
       { to: '/horarios', label: 'Horários', icon: Clock },
       { to: '/biblioteca', label: 'Legendas & Hashtags', icon: Hash },
+      { to: '/pastas', label: 'Pastas monitoradas', icon: FolderSync },
     ],
   },
   {

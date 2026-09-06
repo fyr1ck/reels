@@ -734,3 +734,66 @@ button.tab {
   font-weight: 600;
 }
 button.tab.active { border-bottom-color: var(--accent); }
+
+/* ============================================================
+   PASTAS MONITORADAS  (pagina /pastas)
+   ============================================================ */
+
+.wf-form-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.wf-form-row > input { flex: 1; min-width: 160px; }
+
+.wf-list { display: flex; flex-direction: column; gap: 10px; }
+
+.wf-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .02);
+}
+.wf-item.disabled { opacity: .45; }
+.wf-item-main { min-width: 0; flex: 1; }
+.wf-actions { flex-shrink: 0; }
+
+.wf-item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.wf-path {
+  display: block;
+  margin: 6px 0;
+  font-size: 11.5px;
+  opacity: .55;
+  word-break: break-all;
+}
+
+.wf-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 12px;
+}
+
+.wf-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  background: rgba(239, 68, 68, .12);
+  color: #fca5a5;
+}

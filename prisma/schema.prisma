@@ -198,3 +198,49 @@ model HashtagGroup {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// ============================================================
+// PASTAS MONITORADAS (importacao automatica)
+// ============================================================
+// Equivalente local a "sincronizacao de pasta do Drive": aponta-se uma
+// pasta qualquer do disco — inclusive a do Google Drive / OneDrive /
+// Dropbox ja sincronizada pelo app de desktop — e todo video novo que
+// aparece nela entra na fila sozinho. Nao exige OAuth nem credenciais.
+
+model WatchFolder {
+  id          String   @id @default(uuid())
+  path        String   @unique
+  label       String?
+  enabled     Boolean  @default(true)
+  // COPY = mantem o arquivo original na pasta de origem (padrao, mais seguro)
+  // MOVE = remove da origem depois de importar, evitando reprocessar
+  importMode  String   @default("COPY")
+  // Aplica uma legenda da biblioteca no momento da importacao
+  autoCaption Boolean  @default(false)
+
+  lastScanAt    DateTime?
+  lastError     String?
+  importedCount Int      @default(0)
+
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  imports   ImportedFile[]
+}
+
+// Registro do que ja foi importado, para o mesmo arquivo nao entrar duas
+// vezes na fila. A identidade e (pasta + caminho + tamanho + mtime): se o
+// usuario editar o video e salvar por cima, o mtime muda e ele e tratado
+// como um arquivo novo — que e o comportamento esperado.
+model ImportedFile {
+  id            String      @id @default(uuid())
+  watchFolderId String
+  watchFolder   WatchFolder @relation(fields: [watchFolderId], references: [id], onDelete: Cascade)
+  sourcePath    String
+  size          Int
+  mtimeMs       Float
+  videoId       String?
+  importedAt    DateTime    @default(now())
+
+  @@unique([watchFolderId, sourcePath, size, mtimeMs])
+  @@index([watchFolderId])
+}

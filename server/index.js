@@ -5,6 +5,7 @@ import path from 'path';
 import { ensureDirs, DIRS } from './services/fileManager.js';
 import { startSchedulerLoop } from './services/schedulerService.js';
 import { startCacheAutoCleanLoop } from './services/cacheManager.js';
+import { startWatchFolderLoop } from './services/watchFolderService.js';
 import { closeRenderBrowser } from './services/reelRenderer.js';
 import { prisma } from './db/prisma.js';
 
@@ -20,6 +21,7 @@ import reelEditorRouter from './routes/reelEditor.js';
 import storageRouter from './routes/storage.js';
 import libraryRouter from './routes/library.js';
 import operationRouter from './routes/operation.js';
+import watchFoldersRouter from './routes/watchFolders.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,6 +43,7 @@ app.use('/api/reel-editor', reelEditorRouter);
 app.use('/api/storage', storageRouter);
 app.use('/api/library', libraryRouter);
 app.use('/api/operation', operationRouter);
+app.use('/api/watch-folders', watchFoldersRouter);
 
 // Serve as imagens de capa (individuais e padrão) diretamente do disco.
 // Sistema de capa personalizada — ver server/services/coverManager.js.
@@ -71,6 +74,10 @@ async function bootstrap() {
   await prisma.userSettings.upsert({ where: { id: 1 }, update: {}, create: { id: 1 } });
 
   startCacheAutoCleanLoop(prisma);
+
+  // Importação de pastas monitoradas roda independente da automação: mesmo
+  // com a publicação pausada, o usuário quer que a fila continue enchendo.
+  startWatchFolderLoop();
 
   app.listen(PORT, () => {
     console.log(`✅ API rodando em http://localhost:${PORT}`);

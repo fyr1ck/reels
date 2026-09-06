@@ -14,6 +14,7 @@ import Logs from './pages/Logs.jsx';
 import Settings from './pages/Settings.jsx';
 import Operacao from './pages/Operacao.jsx';
 import Biblioteca from './pages/Biblioteca.jsx';
+import Pastas from './pages/Pastas.jsx';
 import { ToastProvider } from './context/ToastContext.jsx';
 import { ConfirmProvider } from './context/ConfirmContext.jsx';
 import { api } from './api/client.js';
@@ -26,6 +27,7 @@ const PAGE_META = {
   '/calendario': { title: 'Calendário', breadcrumb: 'Conteúdo' },
   '/horarios': { title: 'Horários', breadcrumb: 'Conteúdo' },
   '/biblioteca': { title: 'Legendas & Hashtags', breadcrumb: 'Conteúdo' },
+  '/pastas': { title: 'Pastas monitoradas', breadcrumb: 'Conteúdo' },
   '/instagram': { title: 'Instagram', breadcrumb: 'Conta / Conexão' },
   '/analytics': { title: 'Analytics', breadcrumb: 'Instagram' },
   '/historico': { title: 'Histórico', breadcrumb: 'Atividade' },
@@ -80,6 +82,7 @@ function Shell() {
             <Route path="/calendario" element={<CalendarPage />} />
             <Route path="/horarios" element={<SchedulePage />} />
             <Route path="/biblioteca" element={<Biblioteca />} />
+            <Route path="/pastas" element={<Pastas />} />
             <Route path="/instagram" element={<InstagramPage />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/historico" element={<History />} />
