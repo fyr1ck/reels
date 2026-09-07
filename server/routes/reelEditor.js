@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../db/prisma.js';
+import { resolveAccount } from '../services/accountManager.js';
 import { DIRS, ensureDirs, uniqueFilename } from '../services/fileManager.js';
 import { defaultTemplateConfig, mergeTemplateConfig } from '../services/reelLayout.js';
 import { probeVideo } from '../services/reelProcessor.js';
@@ -240,7 +241,8 @@ router.get('/jobs/:id', async (req, res) => {
 // POST /api/reel-editor/jobs — body: { templateId, sourceVideoIds:[], concurrency, autoQueue, autoSchedule }
 router.post('/jobs', async (req, res) => {
   try {
-    const { templateId, sourceVideoIds, concurrency = 2, autoQueue = false, autoSchedule = false } = req.body;
+    const { templateId, sourceVideoIds, concurrency = 2, autoQueue = false, autoSchedule = false,
+            accountId = null, mediaType = 'REEL' } = req.body;
     if (!templateId) return res.status(400).json({ error: 'Selecione um template.' });
     if (!Array.isArray(sourceVideoIds) || sourceVideoIds.length === 0) {
       return res.status(400).json({ error: 'Selecione ao menos um vídeo.' });
@@ -259,6 +261,9 @@ router.post('/jobs', async (req, res) => {
         totalVideos: sourceVideos.length,
         concurrency: Math.max(1, Math.min(4, Number(concurrency) || 2)),
         autoQueue: !!autoQueue,
+        // Conta de destino do lote: define de quem serão os vídeos gerados.
+        accountId: accountId || (await resolveAccount(null)).id,
+        mediaType: mediaType === 'STORY' ? 'STORY' : 'REEL',
         autoSchedule: !!autoSchedule,
         items: {
           create: sourceVideos.map((v) => ({

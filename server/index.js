@@ -95,6 +95,19 @@ async function bootstrap() {
     where: { status: 'PUBLISHING' },
     data: { status: 'SCHEDULED' },
   });
+  // Videos sem conta ficam invisiveis ao agendador, que filtra por conta —
+  // entram na fila e nunca publicam. Acontecia com todo resultado do Editor
+  // em Massa antes da correcao. Adota-os na conta padrao, onde ao menos
+  // aparecem e podem ser reatribuidos.
+  const contaPadrao = await ensureDefaultAccount();
+  const orfaos = await prisma.video.updateMany({
+    where: { accountId: null },
+    data: { accountId: contaPadrao.id },
+  });
+  if (orfaos.count > 0) {
+    console.log(`↪ ${orfaos.count} vídeo(s) sem conta adotados por @${contaPadrao.username}.`);
+  }
+
   if (presos.count > 0) {
     console.log(`↻ ${presos.count} vídeo(s) interrompidos em publicação voltaram para a fila.`);
   }

@@ -6,6 +6,7 @@ import { mergeTemplateConfig, applyFilenamePattern } from './reelLayout.js';
 import { renderTemplateLayers } from './reelRenderer.js';
 import { probeVideo, runFfmpegJob, cleanupDir } from './reelProcessor.js';
 import { generateUpcomingSchedule } from './schedulerService.js';
+import { ensureDefaultAccount } from './accountManager.js';
 import { logEvent } from './logger.js';
 
 // jobId -> { cancelled: boolean, runningCancels: Set<()=>void> }
@@ -199,6 +200,14 @@ export async function addJobResultsToQueue(jobId, { autoSchedule = false } = {})
   });
   if (items.length === 0) return { added: 0 };
 
+  // Conta e tipo vêm do lote. Sem isso o vídeo nascia com accountId null e o
+  // agendador — que filtra por conta — nunca o encontrava: o resultado do
+  // Editor em Massa entrava na fila e ficava lá para sempre, sem publicar.
+  const job = await prisma.processingJob.findUnique({ where: { id: jobId } });
+  const account = job?.accountId
+    ? await prisma.account.findUnique({ where: { id: job.accountId } })
+    : await ensureDefaultAccount();
+
   const last = await prisma.video.findFirst({ orderBy: { position: 'desc' } });
   let position = last ? last.position + 1 : 0;
 
@@ -215,6 +224,8 @@ export async function addJobResultsToQueue(jobId, { autoSchedule = false } = {})
         size,
         position: position++,
         status: 'PENDING',
+        accountId: account?.id ?? null,
+        mediaType: job?.mediaType === 'STORY' ? 'STORY' : 'REEL',
       },
     });
     await prisma.processedVideo.update({ where: { id: item.id }, data: { addedToQueue: true, queuedVideoId: video.id } });
@@ -222,7 +233,7 @@ export async function addJobResultsToQueue(jobId, { autoSchedule = false } = {})
   }
 
   if (autoSchedule) {
-    await generateUpcomingSchedule();
+    await generateUpcomingSchedule(14, account?.id ?? null);
   }
 
   return { added: items.length };

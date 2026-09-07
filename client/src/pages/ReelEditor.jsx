@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { api, formatDuration, formatSize, formatDateTime } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
+import { useAccounts } from '../context/AccountContext.jsx';
 import { useConfirm } from '../context/ConfirmContext.jsx';
 import { defaultTemplateConfig, mergeTemplateConfig } from './reelEditor/constants.js';
 import TemplateSettingsPanel from './reelEditor/TemplateSettingsPanel.jsx';
@@ -38,6 +39,7 @@ export default function ReelEditor() {
   // ---------- Processamento ----------
   const [concurrency, setConcurrency] = useState(2);
   const [autoQueue, setAutoQueue] = useState(false);
+  const { selectedId, selected } = useAccounts();
   const [autoSchedule, setAutoSchedule] = useState(false);
   const [creatingJob, setCreatingJob] = useState(false);
   const [activeJob, setActiveJob] = useState(null);
@@ -225,6 +227,9 @@ export default function ReelEditor() {
         concurrency,
         autoQueue,
         autoSchedule,
+        // Sem a conta, os vídeos gerados nasciam órfãos e o agendador nunca
+        // os enxergava — entravam na fila e nunca publicavam.
+        accountId: selectedId,
       });
       setActiveJob(data);
       toast.success(`Processamento de ${data.totalVideos} vídeo(s) iniciado.`);
@@ -419,7 +424,7 @@ export default function ReelEditor() {
           </div>
           <label className="checkbox-row" style={{ alignSelf: 'end' }}>
             <input type="checkbox" checked={autoQueue} onChange={(e) => setAutoQueue(e.target.checked)} />
-            Adicionar à fila automaticamente
+            Adicionar à fila de <b>@{selected?.username || '—'}</b>
           </label>
           <label className="checkbox-row" style={{ alignSelf: 'end' }}>
             <input type="checkbox" checked={autoSchedule} onChange={(e) => setAutoSchedule(e.target.checked)} disabled={!autoQueue} />

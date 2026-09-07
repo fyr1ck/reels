@@ -142,6 +142,11 @@ model ProcessingJob {
   concurrency    Int              @default(2)
   autoQueue      Boolean          @default(false)
   autoSchedule   Boolean          @default(false)
+  // Conta de destino do lote. Sem isso os videos processados nasciam com
+  // accountId null e o agendador — que filtra por conta — nunca os via.
+  accountId      String?
+  account        Account?         @relation(fields: [accountId], references: [id])
+  mediaType      String           @default("REEL")
   createdAt      DateTime         @default(now())
   finishedAt     DateTime?
   items          ProcessedVideo[]
@@ -304,7 +309,8 @@ model Account {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  videos       Video[]
-  schedules    Schedule[]
-  publications Publication[]
+  videos         Video[]
+  schedules      Schedule[]
+  publications   Publication[]
+  processingJobs ProcessingJob[]
 }
