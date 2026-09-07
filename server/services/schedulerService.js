@@ -169,6 +169,11 @@ export function applyJitter(baseDate, jitterMinutes) {
 async function generateTimesSchedule(account, daysAhead) {
   const schedules = await prisma.schedule.findMany({
     where: { enabled: true, accountId: account.id },
+    // Stories ficam de fora do agendamento: a web do Instagram nao permite
+    // publica-los (ver publishStory). Agendar so levaria o video a esgotar as
+    // tentativas, ser movido para /failed e pausar a conta — destruindo a fila
+    // por uma limitacao da plataforma. A grade de STORY continua salva e volta
+    // a funcionar sozinha se a publicacao passar a ser possivel.
     orderBy: { time: 'asc' },
   });
   if (schedules.length === 0) return;
@@ -182,6 +187,7 @@ async function generateTimesSchedule(account, daysAhead) {
 
     for (const sch of schedules) {
       const mediaType = sch.mediaType || 'REEL';
+      if (mediaType === 'STORY') continue; // ver comentario acima
       if (exhausted.has(mediaType)) continue;
 
       const [h, m] = sch.time.split(':').map(Number);

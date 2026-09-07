@@ -357,72 +357,42 @@ export async function publishVideo({ filepath, caption, videoName, coverPath, ac
 /**
  * Publica um STORY.
  *
- * O fluxo e mais curto que o do Reel: nao ha telas de corte/filtro, nao ha
- * legenda e nao ha capa — sobe o arquivo e confirma. Por isso vive numa
- * funcao propria em vez de virar um `if` dentro de publishVideo, que ja e
- * longo e cuida de um fluxo bem diferente.
+ * NAO IMPLEMENTAVEL HOJE — falha de imediato, de proposito.
  *
- * ATENCAO: os seletores de story em selectors.js NAO foram verificados
- * contra a interface real do Instagram (o ambiente de desenvolvimento nao
- * tinha conta conectada). Rode a primeira vez com HEADLESS=false para
- * acompanhar e ajustar o que estiver diferente.
+ * Sondas somente-leitura contra a interface real (conta museu_dos_memes01,
+ * 07/09/2026) mostraram que a web do Instagram nao oferece criacao de story:
+ *
+ *   - Desktop: o menu "Criar" tem apenas Postar / Video ao vivo / Anuncio.
+ *   - /stories/create/ nao existe: redireciona para /create/, tratado como
+ *     nome de usuario.
+ *   - Feed desktop nao tem bandeja de stories.
+ *   - Web movel (Pixel 5 emulado): existe o rotulo "Seu story", mas ele nao e
+ *     clicavel e TODOS os input[type=file] da pagina aceitam apenas imagem
+ *     (image/avif,image/jpeg,image/png) — nenhum aceita video.
+ *
+ * O erro sobe na primeira tentativa em vez de deixar o publicador vasculhar
+ * seletores inexistentes: assim o video nao queima as 3 tentativas nem e
+ * movido para /failed, e a conta nao e pausada por uma limitacao da
+ * plataforma que nao tem conserto deste lado.
+ *
+ * O restante do caminho (fila, grade de horario separada, agendamento em
+ * paralelo, despacho por mediaType) esta pronto e testado. Se o Instagram
+ * voltar a expor a criacao de story na web, basta implementar esta funcao.
  */
-export async function publishStory({ filepath, videoName, accountId }) {
-  const start = Date.now();
-  const context = await getBrowserContext(accountId);
-  const page = await context.newPage();
+export async function publishStory({ videoName }) {
+  await logEvent({
+    video: videoName,
+    action: 'STORY_NAO_SUPORTADO',
+    status: 'ERROR',
+    message: 'A web do Instagram nao permite publicar story em video por automacao de navegador.',
+  });
 
-  try {
-    await page.goto('https://www.instagram.com/', { waitUntil: 'domcontentloaded' });
-    await handleCheckpointIfNeeded(page, videoName);
-
-    const opened = await clickFirstMatch(page, SELECTORS.createButton);
-    if (!opened) {
-      throw new Error('Botão de "Criar" não encontrado. Verifique server/playwright/selectors.js.');
-    }
-    await page.waitForTimeout(1000);
-
-    const choseStory = await clickFirstMatch(page, SELECTORS.storyOption);
-    if (!choseStory) {
-      throw new Error('Opção "Story" não encontrada no menu de criação. Verifique SELECTORS.storyOption.');
-    }
-    await page.waitForTimeout(1200);
-
-    // Mesma checagem do fluxo de Reel: confirma que a tela de upload abriu
-    // antes de tentar enviar o arquivo, para nao prosseguir com o menu aberto.
-    const selectBtnCount = await countAnyMatch(page, SELECTORS.selectFromComputerButton);
-    const fileInputCount = await page.locator(SELECTORS.fileInput).count();
-    if (selectBtnCount === 0 && fileInputCount === 0) {
-      throw new Error('Não chegou na tela de upload do story. Verifique SELECTORS.storyOption.');
-    }
-
-    await uploadFile(page, filepath);
-    await logEvent({ video: videoName, action: 'STORY_ARQUIVO_SELECIONADO', status: 'INFO' });
-
-    await handleCheckpointIfNeeded(page, videoName);
-    await page.waitForTimeout(2500); // processamento do video pelo Instagram
-
-    const shared = await clickFirstMatch(page, SELECTORS.storyShareButton);
-    if (!shared) {
-      throw new Error('Botão de publicar story não encontrado. Verifique SELECTORS.storyShareButton.');
-    }
-
-    await logEvent({
-      video: videoName,
-      action: 'STORY_AGUARDANDO_CONFIRMACAO',
-      status: 'INFO',
-      message: 'Aguardando confirmação observável de sucesso.',
-    });
-
-    const confirmed = await waitForAnyText(page, SELECTORS.storySuccessIndicators.textPatterns, 90000);
-    if (!confirmed) {
-      throw new Error('Não foi possível confirmar o story: nenhum indicador de sucesso apareceu em 90s.');
-    }
-
-    return { success: true, durationMs: Date.now() - start };
-  } finally {
-    await page.close().catch(() => {});
-  }
+  throw new Error(
+    'Publicar story não é possível pela web do Instagram: a interface não oferece criação de story ' +
+    'em nenhum caminho (menu "Criar", URL direta ou versão móvel), e os campos de upload da versão ' +
+    'móvel aceitam apenas imagem, não vídeo. Publique stories pelo aplicativo do celular. ' +
+    'Reels continuam funcionando normalmente.'
+  );
 }
 
 export { closeBrowser };

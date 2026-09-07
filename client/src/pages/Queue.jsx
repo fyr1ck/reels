@@ -302,8 +302,13 @@ export default function Queue() {
         <span className="text-faint">Enviar como:</span>
         <button className={`btn btn-sm${uploadMediaType === 'REEL' ? ' btn-primary' : ''}`}
                 onClick={() => setUploadMediaType('REEL')}>Reel</button>
-        <button className={`btn btn-sm${uploadMediaType === 'STORY' ? ' btn-primary' : ''}`}
-                onClick={() => setUploadMediaType('STORY')}>Story</button>
+        {/* Story fica desabilitado: a web do Instagram não permite publicá-lo.
+            Manter o botão clicável só encheria a fila de vídeos que nunca
+            sairiam. Ver server/services/instagramPublisher.js. */}
+        <button className="btn btn-sm" disabled
+                title="A web do Instagram não permite publicar story em vídeo — só pelo app do celular">
+          Story (indisponível)
+        </button>
       </div>
 
       <input

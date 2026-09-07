@@ -137,6 +137,18 @@ export default function SchedulePage() {
         </button>
       </div>
 
+      {mediaType === 'STORY' && (
+        <div className="banner banner-warning">
+          <span>
+            <b>Stories não podem ser publicados por aqui.</b> Testei a interface real do
+            Instagram: o menu “Criar” só oferece Postar, Vídeo ao vivo e Anúncio; a URL direta
+            de story não existe; e na versão móvel os campos de upload aceitam apenas imagem,
+            não vídeo. Publique stories pelo app do celular. Os horários abaixo ficam salvos e
+            voltam a valer sozinhos se o Instagram passar a permitir.
+          </span>
+        </div>
+      )}
+
       <div className="card" style={{ marginBottom: 16 }}>
         <h3 className="section-title">🔁 Modo de agendamento</h3>
 
