@@ -78,7 +78,20 @@ instagram-reels-manager/
 - Node.js 18 ou superior
 - NPM
 
-### 2. Instalação
+### 2. Arquivo de configuração
+
+O `.env` **não vai para o repositório** (ele fica no `.gitignore`), então num
+clone novo ele não existe — e sem `DATABASE_URL` o Prisma não sabe onde criar
+o banco. Copie do exemplo antes de qualquer outra coisa:
+
+```bash
+copy .env.example .env
+```
+
+No Linux/macOS: `cp .env.example .env`. Os valores padrão já servem; ajuste
+depois se quiser (porta, intervalo do agendador, navegador visível).
+
+### 3. Instalação
 
 ```bash
 npm install
@@ -93,22 +106,23 @@ rode manualmente:
 npx playwright install chromium
 ```
 
-### 3. Banco de dados
+### 4. Banco de dados
 
 ```bash
-npm run prisma:migrate
+npx prisma migrate deploy
 ```
 
-Isso cria o arquivo SQLite em `data/app.db` com todas as tabelas
-(`UserSettings`, `Video`, `Publication`, `Schedule`, `Log`, `VideoTemplate`,
-`ProcessingJob`, `ProcessedVideo`, `EditorSourceVideo`).
+Cria o SQLite em `prisma/data/app.db` com todas as tabelas e já insere a conta
+padrão. Use `migrate deploy` (e não `migrate dev`) quando o banco puder ter
+dados: o `dev` oferece resetar tudo se detectar divergência, o `deploy` apenas
+aplica o que falta.
 
 > Se você já tinha o app instalado antes do **Editor em Massa** existir,
 > rode `npm install` (para regenerar o Prisma Client com os novos modelos)
 > e depois `npm run prisma:migrate` novamente — a migração é aditiva e não
 > apaga nenhum dado existente.
 
-### 4. Rodar em desenvolvimento
+### 5. Rodar em desenvolvimento
 
 ```bash
 npm run dev
@@ -136,6 +150,29 @@ http://localhost:3000
 ---
 
 ## 🖥️ Usando o painel
+
+### 0. O que existe hoje no painel
+
+| Tela | Para quê |
+|---|---|
+| **Dashboard** | Visão geral, cobertura da fila em dias e a chave-mestra da automação |
+| **Fila de vídeos** | Enviar vídeos, ordenar, capa padrão e por vídeo |
+| **Horários** | Grade de publicação por conta, com variação aleatória de horário |
+| **Calendário** | Agenda das próximas publicações da conta selecionada |
+| **Editor em Massa** | Aplicar um template visual em N vídeos de uma vez |
+| **Legendas & Hashtags** | Biblioteca com rodízio ponderado + aplicação em lote na fila |
+| **Pastas monitoradas** | Importação automática de uma pasta do disco (Drive/OneDrive/Dropbox sincronizados servem) |
+| **Contas** | Várias contas do Instagram, cada uma com sessão, fila e horários próprios |
+| **Histórico / Logs** | Auditoria do que foi tentado e do que deu errado |
+| **Armazenamento** | Espaço por pasta, limpeza de cache e zona de risco |
+
+**Stories não são publicáveis.** Foi testado contra a interface real: a web do
+Instagram não oferece criação de story em nenhum caminho (menu "Criar", URL
+direta ou versão móvel), e os campos de upload da versão móvel aceitam apenas
+imagem, não vídeo. O modelo de dados e a grade de horários de story existem e
+ficam prontos caso isso mude, mas o agendador ignora stories de propósito —
+publicá-los levaria o vídeo a falhar e ser movido para `/failed`. Use o app do
+celular para stories. **Reels funcionam normalmente.**
 
 ### 1. Conectar o Instagram
 
