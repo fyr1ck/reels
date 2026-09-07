@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FolderPlus, RefreshCw, Trash2, Power, AlertTriangle, FolderSync } from 'lucide-react';
+import { FolderPlus, RefreshCw, Trash2, Power, AlertTriangle, FolderSync, RotateCcw } from 'lucide-react';
 import { api, formatDateTime } from '../api/client.js';
 import { useToast } from '../context/ToastContext.jsx';
 import { useConfirm } from '../context/ConfirmContext.jsx';
@@ -61,6 +61,23 @@ export default function Pastas() {
     await api.delete(`/watch-folders/${folder.id}`);
     await load();
     toast.success('Pasta removida do monitoramento.');
+  }
+
+  async function reimportar(folder) {
+    const ok = await confirmAction({
+      title: 'Reimportar tudo desta pasta',
+      description:
+        'O app esquece quais arquivos já importou daqui, então todos entram na fila de novo na próxima varredura — inclusive os que você removeu antes. Os arquivos na pasta não são alterados.',
+      confirmLabel: 'Reimportar',
+    });
+    if (!ok) return;
+    try {
+      const { data } = await api.post(`/watch-folders/${folder.id}/reset`);
+      await scanNow(folder);
+      toast.success(`${data.esquecidos} registro(s) esquecido(s). Tudo volta na varredura.`);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao reimportar.');
+    }
   }
 
   async function scanNow(folder) {
@@ -180,6 +197,10 @@ export default function Pastas() {
                 <div className="btn-row wf-actions">
                   <button className="btn btn-sm" onClick={() => scanNow(f)} disabled={scanning}>
                     <RefreshCw size={13} /> Varrer
+                  </button>
+                  <button className="btn btn-sm" onClick={() => reimportar(f)} disabled={scanning}
+                          title="Esquece o histórico de importação para tudo entrar na fila de novo">
+                    <RotateCcw size={13} /> Reimportar
                   </button>
                   <button className="btn btn-sm" onClick={() => patch(f, { enabled: !f.enabled })}>
                     <Power size={13} /> {f.enabled ? 'Ativa' : 'Inativa'}

@@ -72,6 +72,27 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// POST /api/watch-folders/:id/reset — esquece o que ja foi importado desta
+// pasta, fazendo a proxima varredura trazer tudo de novo.
+//
+// Existe porque a deduplicacao e permanente por desenho: um video removido da
+// fila nao volta sozinho, senao a varredura seguinte desfaria a remocao. O
+// efeito colateral e que o arquivo fica parado na origem, ignorado para
+// sempre — sem esta rota, a unica saida seria renomear o arquivo na mao.
+router.post('/:id/reset', async (req, res) => {
+  try {
+    const folder = await prisma.watchFolder.findUnique({ where: { id: req.params.id } });
+    if (!folder) return res.status(404).json({ error: 'Pasta não encontrada.' });
+
+    const { count } = await prisma.importedFile.deleteMany({ where: { watchFolderId: folder.id } });
+    await prisma.watchFolder.update({ where: { id: folder.id }, data: { importedCount: 0 } });
+
+    res.json({ ok: true, esquecidos: count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/watch-folders/scan — varre tudo agora, sem esperar o intervalo
 router.post('/scan', async (req, res) => {
   try {
