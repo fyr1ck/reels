@@ -88,9 +88,10 @@ export default function Pastas() {
         <div>
           <h2>Pastas monitoradas</h2>
           <p className="text-dim">
-            Todo vídeo novo que aparecer nessas pastas entra na fila sozinho. Aponte para a
-            pasta do Google Drive, OneDrive ou Dropbox já sincronizada no seu PC e o efeito é o
-            mesmo: você joga o arquivo lá e ele vira publicação.
+            Todo vídeo novo que aparecer nessas pastas entra na fila sozinho. É uma pasta
+            <b>do seu computador</b>, não um link. Se você usa Google Drive, OneDrive ou Dropbox
+            com o app de computador instalado, aponte para a pasta que eles sincronizam: você
+            joga o arquivo lá e ele vira publicação.
           </p>
         </div>
         <button className="btn btn-sm" onClick={() => scanNow(null)} disabled={scanning}>
@@ -102,7 +103,7 @@ export default function Pastas() {
         <h3 className="section-title">➕ Nova pasta</h3>
         <form onSubmit={addFolder}>
           <input
-            placeholder="C:\Users\voce\Google Drive\ReelsManager"
+            placeholder="Caminho no computador. Ex: C:\Users\Vinicin\Videos\Reels"
             value={form.path}
             onChange={(e) => setForm({ ...form, path: e.target.value })}
           />

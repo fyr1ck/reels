@@ -279,8 +279,13 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- Forms ---------- */
-input[type="text"], input[type="time"], input[type="password"],
-input[type="number"], textarea, select {
+/* Um `<input>` sem atributo `type` é text por padrão em HTML, mas NÃO casa
+   com o seletor `input[type="text"]` — e o app tem 35 campos escritos assim,
+   que ficavam com a aparência crua do navegador (borda branca, largura
+   errada) no meio de formulários estilizados. Selecionar por exclusão pega
+   todos, sem tocar em checkbox, radio e file, que têm estilo próprio. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+textarea, select {
   background: var(--bg-inset);
   border: 1px solid var(--border);
   color: var(--text);

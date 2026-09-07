@@ -38,7 +38,28 @@ export function stopWatchFolderLoop() {
  * quando o usuario digita um caminho errado.
  */
 export function validateFolder(folderPath) {
-  const resolved = path.resolve(folderPath || '');
+  const bruto = String(folderPath || '').trim();
+  if (!bruto) throw new Error('Informe o caminho da pasta.');
+
+  // Colar um link em vez de um caminho e o erro mais provavel aqui — e o
+  // path.resolve transformava "https://drive.google.com/..." num caminho
+  // local sem sentido, produzindo um "pasta nao encontrada" que nao ajudava
+  // ninguem. Detectar a URL e explicar o que fazer resolve na primeira leitura.
+  if (/^[a-z]+:\/\//i.test(bruto)) {
+    if (/drive\.google\.com|docs\.google\.com/i.test(bruto)) {
+      throw new Error(
+        'Isso é um link do Google Drive, não uma pasta do seu computador. O app monitora uma ' +
+        'pasta local. Instale o Google Drive para computador (google.com/drive/download), que ' +
+        'cria a pasta "G:\\Meu Drive" ou "C:\\Users\\<você>\\Meu Drive" no Windows, e aponte ' +
+        'para a pasta sincronizada de lá. Também funciona com OneDrive, Dropbox ou qualquer pasta comum.'
+      );
+    }
+    throw new Error(
+      'Informe o caminho de uma pasta do computador (ex: C:\\Users\\você\\Videos\\Reels), não um endereço da web.'
+    );
+  }
+
+  const resolved = path.resolve(bruto);
   if (!resolved) throw new Error('Informe o caminho da pasta.');
 
   let stat;
